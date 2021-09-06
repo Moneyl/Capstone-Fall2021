@@ -1,15 +1,15 @@
 ﻿# Subproject for SDL_ImGui_Testing exe, include source files and define project specific logic here.
 cmake_minimum_required (VERSION 3.8)
-project(SDL_ImGui_Testing)
+project(CapstoneFall2021)
 
 # Recursively add all files in source directory to SOURCES variable
 file(GLOB_RECURSE SOURCES 
-    "${CMAKE_SOURCE_DIR}/SDL_ImGui_Testing/*.cpp"
-    "${CMAKE_SOURCE_DIR}/SDL_ImGui_Testing/*.h"
+    "${CMAKE_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_SOURCE_DIR}/src/*.h"
     )
 
 # Add source files to this project's executable
-add_executable (SDL_ImGui_Testing 
+add_executable (CapstoneFall2021 
     # All files in source directory that we found with the previous command
     ${SOURCES} 
     
@@ -24,14 +24,12 @@ add_executable (SDL_ImGui_Testing
 )
 
 # Set include directories
-target_include_directories(SDL_ImGui_Testing SYSTEM PRIVATE
+target_include_directories(CapstoneFall2021 SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/
-    ${CMAKE_SOURCE_DIR}/SDL_ImGui_Testing/
+    ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/Dependencies/imgui/
     ${CMAKE_SOURCE_DIR}/Dependencies/SDL/include/
 )
 
 # Set libraries to statically link
-target_link_libraries(SDL_ImGui_Testing PRIVATE SDL2-static)
-
-# TODO: Add tests and install targets if needed.
+target_link_libraries(CapstoneFall2021 PRIVATE SDL2-static)

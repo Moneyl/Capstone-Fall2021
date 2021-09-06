@@ -9,4 +9,4 @@ endif()
 
 # Include sub-projects
 add_subdirectory("dependencies/SDL")
-add_subdirectory ("SDL_ImGui_Testing")
+add_subdirectory ("src")
