@@ -4,8 +4,8 @@
 ## Build instructions
 
 ### Requirements
-- [Cmake](https://cmake.org/) or visual studio with cmake integration for project generation.
-- [Git](https://git-scm.com/) to download the repo and dependencies.s
+- [Cmake](https://cmake.org/) as a build system. Newer versions of Visual Studio have an option for built in CMake support.
+- [Git](https://git-scm.com/) to download the repo and dependencies as git submodules.
 
 ### Steps
 1) Download repo with `git clone https://github.com/Moneyl/Capstone-Fall2021.git`
