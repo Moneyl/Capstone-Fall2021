@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "utility/Platform.h"
 #include <iostream>
 
 bool Application::Run()
@@ -8,7 +9,7 @@ bool Application::Run()
 
 bool Application::Init()
 {
-    //Initialize resources
+    //Initialize SDL resources. Application owns all SDL resources and logic is split into other classes like Input and Renderer
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)
     {
@@ -23,8 +24,26 @@ bool Application::Init()
         std::cerr << "SDL failed to create window. Error: " << SDL_GetError() << "\n";
         return false;
     }
-    
     _display = SDL_GetWindowSurface(_window);
+
+    //Todo: Support other backends
+    //Only supporting OpenGL 3.3 as a backend to start since ImGui requires some backend specific code. Will support others later on.
+    SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+
+    //Initialize renderer
+    _rendererSDL = SDL_CreateRenderer(_window, -1, SDL_RENDERER_ACCELERATED);
+    if (!_rendererSDL)
+    {
+        std::cerr << "SDL failed to create a renderer! Error: " << SDL_GetError() << "\n";
+        return false;
+    }
+    Renderer = { _window, _display, _rendererSDL, &Fonts };
+
+    Gui = { &Fonts };
     
     return true;
 }
@@ -32,20 +51,33 @@ bool Application::Init()
 bool Application::MainLoop()
 {
     //Run main loop until exit is requested
+    _frameTimer.Restart();
     SDL_Event event;
     while (!_quit)
     {
-        //Handle qeued SDL events
+        Renderer.NewFrame();
+
+        //Handle queued SDL events
         while (SDL_PollEvent(&event))
             HandleEvent(&event);
 
         //Update app logic
+        Gui.Update(_deltaTime);
 
         //Render frame
-        SDL_UpdateWindowSurface(_window);
+        Renderer.Update(_deltaTime);
 
         //Reset per-frame data
         Input.EndFrame();
+
+        //Wait for target framerate
+        while (_frameTimer.ElapsedSeconds() < targetDeltaTime)
+        {
+            f32 timeToTargetFramerateMs = (targetDeltaTime - _frameTimer.ElapsedSeconds()) * 1000.0f;
+            ThreadSleep(timeToTargetFramerateMs);
+        }
+        _deltaTime = _frameTimer.ElapsedSeconds();
+        _frameTimer.Restart();
     }
 
     return true;
@@ -54,12 +86,12 @@ bool Application::MainLoop()
 bool Application::Shutdown()
 {
     //Cleanup resources
-    SDL_FreeSurface(_display);
+    Renderer.Cleanup();
+    SDL_DestroyRenderer(_rendererSDL);
     SDL_DestroyWindow(_window);
     _window = nullptr;
 
     SDL_Quit();
-
     return true;
 }
 
@@ -69,7 +101,7 @@ void Application::HandleEvent(SDL_Event* event)
     {
         _quit = true;
     }
-    else if (event->type == SDL_EventType::SDL_WINDOWEVENT && event->window.type == SDL_WINDOWEVENT_SIZE_CHANGED)
+    else if (event->type == SDL_EventType::SDL_WINDOWEVENT && event->window.event == SDL_WINDOWEVENT_RESIZED)
     {
         HandleWindowResize(event->window.data1, event->window.data2);
     }
@@ -79,9 +111,9 @@ void Application::HandleEvent(SDL_Event* event)
     }
 }
 
-void Application::HandleWindowResize(int newWidth, int newHeight)
+void Application::HandleWindowResize(i32 newWidth, i32 newHeight)
 {
     _windowWidth = newWidth;
     _windowHeight = newHeight;
-    printf("Window resized to: {%d, %d}", _windowWidth, _windowHeight);
+    Renderer.HandleWindowResize(newWidth, newHeight);
 }

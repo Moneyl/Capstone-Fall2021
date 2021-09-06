@@ -1,4 +1,5 @@
 #pragma once
+#include "Typedefs.h"
 #include <SDL.h>
 #include <unordered_map>
 
@@ -45,12 +46,12 @@ private:
 	bool _leftMouseButtonDown = false;
 	bool _rightMouseButtonDown = false;
 	bool _middleMouseButtonDown = false;
-	int _lastMouseX = 0;
-	int _lastMouseY = 0;
-	int _mousePosX = 0;
-	int _mousePosY = 0;
-	int _mouseDeltaX = 0;
-	int _mouseDeltaY = 0;
+	i32 _lastMouseX = 0;
+	i32 _lastMouseY = 0;
+	i32 _mousePosX = 0;
+	i32 _mousePosY = 0;
+	i32 _mouseDeltaX = 0;
+	i32 _mouseDeltaY = 0;
 	bool _mouseButtonPressed = false;
 	bool _mouseMoved = false;
 };
