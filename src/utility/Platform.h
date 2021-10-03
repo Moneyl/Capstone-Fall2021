@@ -9,11 +9,17 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <synchapi.h> //For windows Sleep()
-
-//Windows specific
+#include <timeapi.h>
 
 //Todo: Add support for linux and mac os. One way this might be done is to define functions here, then have separate .cpp files with the implementations for each platform
-void ThreadSleep(u32 ms)
+void ThreadSleep(u32 ms, bool setTimerPrecision = false)
 {
+    //On some windows systems timer precision needs to manually be set to 1ms to get accurate sleeps.
+    if(setTimerPrecision)
+        timeBeginPeriod(1);
+
     Sleep(ms);
+
+    if(setTimerPrecision)
+        timeEndPeriod(1);
 }

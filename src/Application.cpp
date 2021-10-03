@@ -44,7 +44,7 @@ bool Application::Init()
     Renderer = { _window, _display, _rendererSDL, &Fonts };
 
     Gui = { &Fonts };
-    
+
     return true;
 }
 
@@ -74,7 +74,7 @@ bool Application::MainLoop()
         while (_frameTimer.ElapsedSeconds() < targetDeltaTime)
         {
             f32 timeToTargetFramerateMs = (targetDeltaTime - _frameTimer.ElapsedSeconds()) * 1000.0f;
-            ThreadSleep(timeToTargetFramerateMs);
+            ThreadSleep(timeToTargetFramerateMs, true);
         }
         _deltaTime = _frameTimer.ElapsedSeconds();
         _frameTimer.Restart();
