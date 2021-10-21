@@ -43,12 +43,20 @@ namespace String
         return str.compare(0, target.length(), target) == 0; //True if target string is at index 0
     }
 
-    bool IsNumber(std::string_view str, bool allowHexadecimal)
+    bool IsNumber(std::string_view str, bool allowHex)
     {
         //Todo: Either rename the func to ::IsI32() or maybe just have a bunch of specialized instances with types. E.g. String::IsNumber<i32>()
         int num = 0;
         const int base = String::StartsWith(String::ToLower(str), "0x") ? 16 : 10;
         auto res = std::from_chars(str.data(), str.data() + str.length(), num, base);
         return res.ec == std::errc();
+    }
+
+    i16 ToShort(std::string_view str, bool allowHex)
+    {
+        int num = 0;
+        const int base = String::StartsWith(String::ToLower(str), "0x") ? 16 : 10;
+        auto res = std::from_chars(str.data(), str.data() + str.length(), num, base);
+        return (i16)num;
     }
 }

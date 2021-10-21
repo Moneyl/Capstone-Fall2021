@@ -18,6 +18,9 @@ public:
     //Compile assembly file into machine code then save it to another file.
     Result<void, CompilerError> CompileToFile(const std::vector<TokenData> tokens, std::string_view outputFilePath);
     Result<void, CompilerError> CompileToFile(std::string_view inputFilePath, std::string_view outputFilePath);
+
+private:
+    i32 GetRegisterIndex(Token token);
 };
 
 enum CompilerErrorCode

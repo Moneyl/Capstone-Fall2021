@@ -49,7 +49,6 @@ enum Token
     REGISTER4,
     REGISTER5,
     REGISTER6,
-    REGISTER8,
     REGISTER7,
     NUMBER,
     UNKNOWN
@@ -60,6 +59,12 @@ struct TokenData
 {
     Token Type;
     std::string_view String;
+
+    //Returns true if the token is a register
+    bool Register() const
+    {
+        return Type >= REGISTER0 && Type <= REGISTER7;
+    }
 };
 
 //Used to identify tokens. Returns true if the match function detects its token
