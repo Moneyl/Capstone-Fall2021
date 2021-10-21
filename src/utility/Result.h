@@ -34,8 +34,8 @@ public:
     //Get result state and data
     bool Success() const { return std::holds_alternative<ResultType>(_data); }
     bool Error() const { return std::holds_alternative<ErrorType>(_data); }
-    ResultType SuccessData() { return std::get<ResultType>(_data); }
-    ErrorType ErrorData() { return std::get<ErrorType>(_data); }
+    ResultType& SuccessData() { return std::get<ResultType>(_data); }
+    ErrorType& ErrorData() { return std::get<ErrorType>(_data); }
 
 private:
     std::variant<ResultType, ErrorType> _data;

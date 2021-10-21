@@ -3,6 +3,7 @@
 #include "Tokenizer.h"
 #include "utility/Span.h"
 #include "utility/Result.h"
+#include "Instruction.h"
 
 enum CompilerErrorCode;
 struct CompilerError;
@@ -10,14 +11,13 @@ struct CompilerError;
 class Compiler
 {
 public:
-    //Todo: Look into making an owning version of Span<T> to automatically handle de-allocation.
-    //Compile assembly file into machine code to be run by VM. Caller must cleanup returned Span<u8> if the functions succeeds
-    Result<Span<u8>, CompilerError> CompileToMemory(std::string_view inputFilePath);
-    Result<Span<u8>, CompilerError> CompileToMemory(const std::vector<TokenData> tokens);
+    //Compile assembly file into machine code
+    Result<std::vector<Instruction>, CompilerError> CompileToMemory(const std::vector<TokenData> tokens);
+    Result<std::vector<Instruction>, CompilerError> CompileToMemory(std::string_view inputFilePath);
 
-    //Compile assembly file into machine code to be run by VM, then saves it to another file.
-    Result<void, CompilerError> CompileToFile(std::string_view inputFilePath, std::string_view outputFilePath);
+    //Compile assembly file into machine code then save it to another file.
     Result<void, CompilerError> CompileToFile(const std::vector<TokenData> tokens, std::string_view outputFilePath);
+    Result<void, CompilerError> CompileToFile(std::string_view inputFilePath, std::string_view outputFilePath);
 };
 
 enum CompilerErrorCode

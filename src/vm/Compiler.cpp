@@ -1,23 +1,56 @@
 #include "Compiler.h"
+#include "utility/File.h"
 
-Result<Span<u8>, CompilerError> Compiler::CompileToMemory(std::string_view inputFilePath)
+Result<std::vector<Instruction>, CompilerError> Compiler::CompileToMemory(const std::vector<TokenData> tokens)
 {
-    Span<u8> span = { nullptr, 0 };
-    return Success(span);
+    //Parse tokens and output machine code
+    std::vector<Instruction> out;
+    u32 pos = 0;
+    while (pos < out.size())
+    {
+        Instruction* cur = &out[0];
+        Instruction* next = &out[pos + 1];
+
+
+    }
+
+    return Success(out);
 }
 
-Result<Span<u8>, CompilerError> Compiler::CompileToMemory(const std::vector<TokenData> tokens)
+Result<std::vector<Instruction>, CompilerError> Compiler::CompileToMemory(std::string_view inputFilePath)
 {
-    Span<u8> span = { nullptr, 0 };
-    return Success(span);
-}
-
-Result<void, CompilerError> Compiler::CompileToFile(std::string_view inputFilePath, std::string_view outputFilePath)
-{
-    return Success<void>();
+    //Read file to string, tokenize, and compile
+    std::string fileString = File::ReadAll(inputFilePath);
+    std::vector<TokenData> tokens = Tokenizer::Tokenize(fileString);
+    return CompileToMemory(tokens);
 }
 
 Result<void, CompilerError> Compiler::CompileToFile(const std::vector<TokenData> tokens, std::string_view outputFilePath)
 {
+    //Compile from tokens
+    Result<std::vector<Instruction>, CompilerError> compileResult = CompileToMemory(tokens);
+
+    //Handle compile errors
+    if (compileResult.Error())
+        return Error(compileResult.ErrorData());
+
+    //No compile errors, write machine code to output file
+    File::WriteAllBytes<Instruction>(outputFilePath, compileResult.SuccessData());
+    return Success<void>();
+}
+
+Result<void, CompilerError> Compiler::CompileToFile(std::string_view inputFilePath, std::string_view outputFilePath)
+{
+    //Read file to string, tokenize, and compile
+    std::string fileString = File::ReadAll(inputFilePath);
+    std::vector<TokenData> tokens = Tokenizer::Tokenize(fileString);
+    Result<std::vector<Instruction>, CompilerError> compileResult = CompileToMemory(tokens);
+    
+    //Handle compile errors
+    if (compileResult.Error())
+        return Error(compileResult.ErrorData());
+
+    //No compile errors, write machine code to output file
+    File::WriteAllBytes<Instruction>(outputFilePath, compileResult.SuccessData());
     return Success<void>();
 }

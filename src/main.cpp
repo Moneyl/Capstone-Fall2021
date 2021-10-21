@@ -37,10 +37,10 @@ int main(int argc, char* argv[])
 	}
 
 	Compiler compiler;
-	Result<Span<u8>, CompilerError> compileResult = compiler.CompileToMemory(tokens);
+	Result<std::vector<Instruction>, CompilerError> compileResult = compiler.CompileToMemory(tokens);
 	if (compileResult.Error())
 	{
-		CompilerError error = compileResult.ErrorData();
+		CompilerError& error = compileResult.ErrorData();
 		std::cout << "Compiler error '" << to_string(error.Code) << "'. Message: \"" << error.Message << "\"\n";
 		return EXIT_FAILURE;
 	}

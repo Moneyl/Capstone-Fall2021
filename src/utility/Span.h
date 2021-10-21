@@ -1,6 +1,7 @@
 #pragma once
 #include "Typedefs.h"
 #include <exception>
+#include <vector>
 
 //Non owning wrapper for a contiguous chunk of memory
 template<class T>
@@ -8,6 +9,7 @@ class Span
 {
 public:
     Span(T* data, u64 size) : _data(data), _size(size) {}
+    Span(std::vector<T>& vec) : _data(vec.data()), _size(vec.size()) {}
 
     T* data() { return _data; } //Get pointer to the memory referenced by the span
     u64 size() const { return _size; } //The number of elements in the span
@@ -47,6 +49,6 @@ public:
     }
 
 private:
-    const T* _data;
+    T* const _data;
     const u64 _size;
 };
