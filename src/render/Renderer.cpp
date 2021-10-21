@@ -30,7 +30,7 @@ Renderer::Renderer(SDL_Window* window, SDL_Surface* surface, SDL_Renderer* rende
     //Todo: Support other backends. Only supporting OpenGL to start since ImGui requires some backend specific code and all platforms have OpenGL.
     if(BackendType != OpenGL)
         throw std::runtime_error("SDL is using an unsupported backend type '" + backend + "'.");
-    
+
     //Init imgui
     InitImGui();
 }
@@ -56,7 +56,7 @@ void Renderer::Update(f32 deltaTime)
     //Clear screen by setting all pixels to black
     SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
     SDL_RenderClear(_renderer);
-    
+
     //Draw things
     //Blue rectangle
     SDL_SetRenderDrawColor(_renderer, 0, 0, 255, 255);

@@ -11,16 +11,15 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 
 # Recursively add all files in source directory to SOURCES variable
-file(GLOB_RECURSE SOURCES 
+file(GLOB_RECURSE SOURCES
     "${CMAKE_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_SOURCE_DIR}/src/*.h"
     )
 
 # Add source files to this project's executable
-add_executable (CapstoneFall2021 
+add_executable (CapstoneFall2021
     # All files in source directory that we found with the previous command
-    ${SOURCES} 
-    
+    ${SOURCES}
     # ImGui is header only so we manually link its files
     ${CMAKE_SOURCE_DIR}/dependencies/imgui/imgui.cpp
     ${CMAKE_SOURCE_DIR}/dependencies/imgui/imgui_demo.cpp

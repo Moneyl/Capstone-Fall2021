@@ -7,6 +7,10 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
     add_compile_definitions(DEBUG_BUILD)
 endif()
 
+set(CMAKE_CXX_STANDARD           17)
+set(CMAKE_CXX_STANDARD_REQUIRED  ON)
+set(CMAKE_CXX_EXTENSIONS         OFF)
+
 # Include sub-projects
 add_subdirectory("dependencies/SDL")
 add_subdirectory ("src")
