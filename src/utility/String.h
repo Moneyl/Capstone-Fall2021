@@ -15,8 +15,8 @@ namespace String
     bool StartsWith(std::string_view str, std::string_view target);
 
     //Returns true if the string is a valid number. Supports hex strings by default.
-    bool IsNumber(std::string_view str, bool allowHex = true);
+    bool IsNumber(std::string_view str);
 
     //Converts string to a 16bit signed integer. Supports hex by prefixing with 0x
-    i16 ToShort(std::string_view str, bool allowHex = true);
+    i16 ToShort(std::string_view str);
 }

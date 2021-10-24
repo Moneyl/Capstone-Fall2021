@@ -17,36 +17,36 @@ TokenizerRule Match(Token token, std::string_view match)
 //Tokenizer rules
 const std::vector<TokenizerRule> Tokenizer::Rules =
 {
-    Match(MOV, "mov"),
-    Match(ADD, "add"),
-    Match(SUB, "sub"),
-    Match(MUL, "mul"),
-    Match(DIV, "div"),
-    Match(CMP, "cmp"),
-    Match(JMP, "jmp"),
-    Match(JEQ, "jeq"),
-    Match(JNE, "jne"),
-    Match(JGR, "jgr"),
-    Match(JLS, "jls"),
-    Match(CALL, "call"),
-    Match(RET, "ret"),
-    Match(AND, "and"),
-    Match(OR, "or"),
-    Match(XOR, "xor"),
-    Match(NEG, "neg"),
-    Match(LOAD, "load"),
-    Match(STORE, "store"),
-    Match(PUSH, "push"),
-    Match(POP, "pop"),
-    Match(REGISTER0, "r0"),
-    Match(REGISTER1, "r1"),
-    Match(REGISTER2, "r2"),
-    Match(REGISTER3, "r3"),
-    Match(REGISTER4, "r4"),
-    Match(REGISTER5, "r5"),
-    Match(REGISTER6, "r6"),
-    Match(REGISTER7, "r7"),
-    Rule(NUMBER, [](std::string_view str) -> bool { return String::IsNumber(str); }),
+    Match(Token::Mov, "mov"),
+    Match(Token::Add, "add"),
+    Match(Token::Sub, "sub"),
+    Match(Token::Mul, "mul"),
+    Match(Token::Div, "div"),
+    Match(Token::Cmp, "cmp"),
+    Match(Token::Jmp, "jmp"),
+    Match(Token::Jeq, "jeq"),
+    Match(Token::Jne, "jne"),
+    Match(Token::Jgr, "jgr"),
+    Match(Token::Jls, "jls"),
+    Match(Token::Call, "call"),
+    Match(Token::Ret, "ret"),
+    Match(Token::And, "and"),
+    Match(Token::Or, "or"),
+    Match(Token::Xor, "xor"),
+    Match(Token::Neg, "neg"),
+    Match(Token::Load, "load"),
+    Match(Token::Store, "store"),
+    Match(Token::Push, "push"),
+    Match(Token::Pop, "pop"),
+    Match(Token::Register0, "r0"),
+    Match(Token::Register1, "r1"),
+    Match(Token::Register2, "r2"),
+    Match(Token::Register3, "r3"),
+    Match(Token::Register4, "r4"),
+    Match(Token::Register5, "r5"),
+    Match(Token::Register6, "r6"),
+    Match(Token::Register7, "r7"),
+    Rule(Token::Value, [](std::string_view str) -> bool { return String::IsNumber(str); }),
 };
 
 std::vector<TokenData> Tokenizer::Tokenize(std::string_view str)
@@ -82,9 +82,10 @@ std::vector<TokenData> Tokenizer::Tokenize(std::string_view str)
             {
                 //Todo: Add proper logging to files
                 std::cout << "Unknown token: \"" << strLowercase << "\". Ignoring...\n";
-                tokens.push_back({ UNKNOWN, str });
+                tokens.push_back({ Token::Unknown, str });
             }
         }
+        tokens.push_back({ Token::Newline, "\n" });
     }
 
     return tokens;

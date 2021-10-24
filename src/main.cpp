@@ -2,13 +2,14 @@
 #include "Application.h"
 #include "vm/Tokenizer.h"
 #include "vm/Compiler.h"
+#include "vm/VM.h"
 
 //Todo: Move to test file
 const std::string testString =
 "jmp 2\n"
 //"var cnt 26\n" //Todo: support var
 "load r0 1\n"
-"mov r1; TODO: SUPPORT CHARACTERS? 'a'\n"
+";mov r1 'a'\n" //Todo: Support character values
 "store 0xFF r1\n"
 "add r1 1\n"
 "sub r0 1\n"
@@ -27,23 +28,32 @@ const std::string testString =
 "store 0xFF r7\n"
 "ret\n";
 
-
 int main(int argc, char* argv[])
 {
+	//Tokenize code
 	std::vector<TokenData> tokens = Tokenizer::Tokenize(testString);
 	for (TokenData& token : tokens)
 	{
 		std::cout << "Token: " << to_string(token.Type) << ", String: \"" << token.String << "\"\n";
 	}
 
+	//Compile tokens to instructions
 	Compiler compiler;
 	Result<std::vector<Instruction>, CompilerError> compileResult = compiler.CompileToMemory(tokens);
 	if (compileResult.Error())
 	{
-		CompilerError& error = compileResult.ErrorData();
+		CompilerError error = compileResult.ErrorData();
 		std::cout << "Compiler error '" << to_string(error.Code) << "'. Message: \"" << error.Message << "\"\n";
 		return EXIT_FAILURE;
 	}
+
+	//Disassemble binary
+	for (Instruction& instruction : compileResult.SuccessData())
+		std::cout << to_string(instruction) << "\n";
+
+	//Run VM
+	VM vm;
+	vm.Run(compileResult.SuccessData());
 
 	Application app;
 	bool result = app.Run();
