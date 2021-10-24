@@ -37,6 +37,7 @@ target_include_directories(CapstoneFall2021 SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/Dependencies/imgui/
     ${CMAKE_SOURCE_DIR}/Dependencies/SDL/include/
     ${CMAKE_SOURCE_DIR}/Dependencies/IconFontCppHeaders/
+    ${CMAKE_SOURCE_DIR}/Dependencies/magic_enum/include/
 )
 
 # Set libraries to statically link

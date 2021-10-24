@@ -4,6 +4,7 @@
 #include "utility/Span.h"
 #include "utility/Result.h"
 #include "Instruction.h"
+#include <magic_enum.hpp>
 
 enum CompilerErrorCode;
 struct CompilerError;
@@ -38,15 +39,5 @@ struct CompilerError
 
 static std::string to_string(CompilerErrorCode value)
 {
-    switch (value)
-    {
-    case None:
-        return "None";
-    case InvalidSyntax:
-        return "InvalidSyntax";
-    case InvalidToken:
-        return "InvalidToken";
-    default:
-        return "Invalid enum";
-    }
+    return std::string(magic_enum::enum_name(value));
 }

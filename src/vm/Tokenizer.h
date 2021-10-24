@@ -4,6 +4,7 @@
 #include <string_view>
 #include <functional>
 #include <vector>
+#include <magic_enum.hpp>
 
 enum class Token;
 struct TokenData;
@@ -81,75 +82,5 @@ struct TokenizerRule
 
 static std::string to_string(Token token)
 {
-    switch (token)
-    {
-    case Token::Mov:
-        return "MOV";
-    case Token::Add:
-        return "ADD";
-    case Token::Sub:
-        return "SUB";
-    case Token::Mul:
-        return "MUL";
-    case Token::Div:
-        return "DIV";
-    case Token::Cmp:
-        return "CMP";
-    case Token::Jmp:
-        return "JMP";
-    case Token::Jeq:
-        return "JEQ";
-    case Token::Jne:
-        return "JNE";
-    case Token::Jgr:
-        return "JGR";
-    case Token::Jls:
-        return "JLS";
-    case Token::Call:
-        return "CALL";
-    case Token::Ret:
-        return "RET";
-    case Token::And:
-        return "AND";
-    case Token::Or:
-        return "OR";
-    case Token::Xor:
-        return "XOR";
-    case Token::Neg:
-        return "NEG";
-    case Token::Load:
-        return "LOAD";
-    case Token::Store:
-        return "STORE";
-    case Token::Push:
-        return "PUSH";
-    case Token::Pop:
-        return "POP";
-    case Token::Register0:
-        return "REGISTER0";
-    case Token::Register1:
-        return "REGISTER1";
-    case Token::Register2:
-        return "REGISTER2";
-    case Token::Register3:
-        return "REGISTER3";
-    case Token::Register4:
-        return "REGISTER4";
-    case Token::Register5:
-        return "REGISTER5";
-    case Token::Register6:
-        return "REGISTER6";
-    case Token::Register7:
-        return "REGISTER7";
-    case Token::Value:
-        return "NUMBER";
-    case Token::Unknown:
-        return "UNKNOWN";
-    case Token::None:
-        return "NONE";
-    case Token::Newline:
-        return "NEWLINE";
-    default:
-        return "INVALID ENUM";
-    }
+    return std::string(magic_enum::enum_name(token));
 }
