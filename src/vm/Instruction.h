@@ -51,7 +51,7 @@ union Instruction
         u16 Lower : 8;
     } Split;
 
-    u16 Word;
+    u16 Value;
 };
 static_assert(sizeof(Instruction) == 2, "sizeof(Instruction) must be 2 bytes");
 
