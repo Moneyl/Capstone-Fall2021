@@ -10,50 +10,60 @@ union Instruction
     //(mov|add|sub|mul|div|cmp|and|or|xor|load|store) register register
     struct
     {
-        u16 Opcode : 5; //Note: Allows 32 instruction types
-        u16 Reg0 : 3;
-        u16 Reg1 : 3;
+        u32 Opcode : 5; //Note: Allows up to 32 opcodes
+        u32 Reg0 : 3;
+        u32 Reg1 : 3;
     } OpRegisterRegister;
 
     //(mov|add|sub|mul|div|cmp|and|or|xor|load|store) register value
     struct
     {
-        u16 Opcode : 5;
-        u16 Reg0 : 3;
-        u16 Value : 8; //Note: Only allows [-128, 127]
+        u32 Opcode : 5;
+        u32 Reg0 : 3;
+        i32 Value : 16; //Range: [-32768, 32767]
     } OpRegisterValue;
 
     //(jmp|jeq|jne|jgr|jls|call) address
     struct
     {
-        u16 Opcode : 5;
-        u16 Empty0 : 3;
-        u16 Address : 8;
+        u32 Opcode : 5;
+        u32 Empty0 : 3;
+        u32 Address : 16; //Range: [-32768, 32767]
     } OpAddress;
 
     //(neg|push|pop) register
     struct
     {
-        u16 Opcode : 5;
-        u16 Reg : 3;
+        u32 Opcode : 5;
+        u32 Reg : 3;
     } OpRegister;
 
     //ret
     struct
     {
-        u16 Opcode : 5;
+        u32 Opcode : 5;
     } Op;
 
     //Split into upper and lower bits
     struct
     {
-        u16 Upper : 8;
-        u16 Lower : 8;
+        u32 Upper : 16;
+        u32 Lower : 16;
     } Split;
 
-    u16 Value;
+    //Split into bytes
+    struct
+    {
+        u32 Byte0 : 8;
+        u32 Byte1 : 8;
+        u32 Byte2 : 8;
+        u32 Byte3 : 8;
+    } Bytes;
+
+    //Interpret as an integer
+    u32 Value;
 };
-static_assert(sizeof(Instruction) == 2, "sizeof(Instruction) must be 2 bytes");
+static_assert(sizeof(Instruction) == 4, "sizeof(Instruction) must be 4 bytes");
 
 //IMPORTANT: Don't change the values of these without updating the Compiler. It relies on the enums having certain values to shorten the code.
 //Used to identify instructions
