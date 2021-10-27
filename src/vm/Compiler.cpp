@@ -40,8 +40,8 @@ Result<std::vector<Instruction>, CompilerError> Compiler::CompileToMemory(const 
             if (next.IsRegister() && next2.IsRegister() && next3.Type == Token::Newline)
             {
                 instruction.OpRegisterRegister.Opcode = (u16)(cur.Type);
-                instruction.OpRegisterRegister.Reg0 = GetRegisterIndex(next.Type);
-                instruction.OpRegisterRegister.Reg1 = GetRegisterIndex(next2.Type);
+                instruction.OpRegisterRegister.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterRegister.RegB = GetRegisterIndex(next2.Type);
                 curTokenIndex += 4;
             }
             else if (next.IsRegister() && next2.Type == Token::Value && next3.Type == Token::Newline)
@@ -49,7 +49,7 @@ Result<std::vector<Instruction>, CompilerError> Compiler::CompileToMemory(const 
                 //The Token enum is equivalent to the Opcode enum for easy conversion
                 //Opcodes that have register and value variants can be converted by adding 1. E.g. Mov = 0, MovVal = Mov + 1
                 instruction.OpRegisterValue.Opcode = (u16)(cur.Type) + 1;
-                instruction.OpRegisterValue.Reg0 = GetRegisterIndex(next.Type);
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
                 instruction.OpRegisterValue.Value = String::ToShort(next2.String);
                 curTokenIndex += 4;
             }
@@ -63,15 +63,15 @@ Result<std::vector<Instruction>, CompilerError> Compiler::CompileToMemory(const 
             if (next.IsRegister() && next2.Type == Token::Value && next3.Type == Token::Newline)
             {
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Load;
-                instruction.OpRegisterValue.Reg0 = GetRegisterIndex(next.Type);
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
                 instruction.OpRegisterValue.Value = String::ToShort(next2.String);
                 curTokenIndex += 4;
             }
             else if (next.IsRegister() && next2.IsRegister() && next3.Type == Token::Newline)
             {
                 instruction.OpRegisterRegister.Opcode = (u16)Opcode::LoadP;
-                instruction.OpRegisterRegister.Reg0 = GetRegisterIndex(next.Type);
-                instruction.OpRegisterRegister.Reg1 = GetRegisterIndex(next2.Type);
+                instruction.OpRegisterRegister.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterRegister.RegB = GetRegisterIndex(next2.Type);
                 curTokenIndex += 4;
             }
             else
@@ -85,14 +85,14 @@ Result<std::vector<Instruction>, CompilerError> Compiler::CompileToMemory(const 
             {
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Store;
                 instruction.OpRegisterValue.Value = String::ToShort(next.String);
-                instruction.OpRegisterValue.Reg0 = GetRegisterIndex(next2.Type);
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(next2.Type);
                 curTokenIndex += 4;
             }
             else if (next.IsRegister() && next2.IsRegister() && next3.Type == Token::Newline)
             {
                 instruction.OpRegisterRegister.Opcode = (u16)Opcode::StoreP;
-                instruction.OpRegisterRegister.Reg0 = GetRegisterIndex(next.Type);
-                instruction.OpRegisterRegister.Reg1 = GetRegisterIndex(next2.Type);
+                instruction.OpRegisterRegister.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterRegister.RegB = GetRegisterIndex(next2.Type);
                 curTokenIndex += 4;
             }
             else
