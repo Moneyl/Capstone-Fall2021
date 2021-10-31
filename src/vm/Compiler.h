@@ -4,31 +4,32 @@
 #include "utility/Span.h"
 #include "utility/Result.h"
 #include "Instruction.h"
+#include "VmProgram.h"
 #include <magic_enum.hpp>
 
-enum CompilerErrorCode;
 struct CompilerError;
 
+//Compiles assembly to a program that the VM can run
 class Compiler
 {
 public:
-    //Compile assembly file into machine code
-    Result<std::vector<Instruction>, CompilerError> CompileToMemory(const std::vector<TokenData> tokens);
-    Result<std::vector<Instruction>, CompilerError> CompileToMemory(std::string_view inputFilePath);
-
-    //Compile assembly file into machine code then save it to another file.
-    Result<void, CompilerError> CompileToFile(const std::vector<TokenData> tokens, std::string_view outputFilePath);
-    Result<void, CompilerError> CompileToFile(std::string_view inputFilePath, std::string_view outputFilePath);
+    //Compile assembly file into program binary
+    Result<VmProgram, CompilerError> Compile(const std::vector<TokenData>& tokens);
+    Result<VmProgram, CompilerError> Compile(std::string_view source);
+    Result<VmProgram, CompilerError> CompileFile(std::string_view inputFilePath);
 
 private:
     i32 GetRegisterIndex(Token token);
 };
 
-enum CompilerErrorCode
+enum class CompilerErrorCode
 {
     None,
     InvalidSyntax,
-    InvalidToken
+    UnsupportedToken,
+    TokenizationError,
+    DuplicateLabel,
+    DuplicateVariable,
 };
 
 struct CompilerError

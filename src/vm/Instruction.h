@@ -3,6 +3,15 @@
 #include "utility/String.h"
 #include <magic_enum.hpp>
 #include <string>
+#include <cmath>
+
+//Number of bits/bytes per value. Addresses are the same size.
+const u32 INSTRUCTION_VALUE_BITS = 16;
+//The number of bytes per value. Rounded up so the VM doesn't need to deal with sub-byte data sizes if non byte aligned values are ever tried.
+const u32 INSTRUCTION_VALUE_BYTES = u32(std::ceil(f32(INSTRUCTION_VALUE_BITS / 8)));
+
+using VmValue = i16; //VM variable size
+using Register = VmValue; //VM register size
 
 //Instruction layout based on SUNY AT instructions. Modified to allow for larger addresses and values, and more variables
 union Instruction
@@ -11,24 +20,24 @@ union Instruction
     struct
     {
         u32 Opcode : 5; //Note: Allows up to 32 opcodes
-        u32 Reg0 : 3;
-        u32 Reg1 : 3;
+        u32 RegA : 3;
+        u32 RegB : 3;
     } OpRegisterRegister;
 
     //(mov|add|sub|mul|div|cmp|and|or|xor|load|store) register value
     struct
     {
         u32 Opcode : 5;
-        u32 Reg0 : 3;
-        i32 Value : 16; //Range: [-32768, 32767]
+        u32 RegA : 3;
+        i32 Value : INSTRUCTION_VALUE_BITS; //Range: [-32768, 32767]
     } OpRegisterValue;
 
     //(jmp|jeq|jne|jgr|jls|call) address
     struct
     {
         u32 Opcode : 5;
-        u32 Empty0 : 3;
-        u32 Address : 16; //Range: [-32768, 32767]
+        u32 Unused : 3;
+        u32 Address : INSTRUCTION_VALUE_BITS; //Range: [-32768, 32767]
     } OpAddress;
 
     //(neg|push|pop) register
@@ -97,7 +106,7 @@ enum class Opcode
     Neg = 25,       //neg register
     Load = 26,      //load register address
     LoadP = 27,     //load register register
-    Store = 28,     //store register address
+    Store = 28,     //store address register
     StoreP = 29,    //store register register
     Push = 30,      //push register
     Pop = 31        //pop register
@@ -146,8 +155,8 @@ static std::string to_string(const Instruction& instruction)
     case Opcode::LoadP:
     case Opcode::StoreP:
         return to_string((Opcode)instruction.Op.Opcode, true) + " "
-               + "r" + std::to_string(instruction.OpRegisterRegister.Reg0) + " "
-               + "r" + std::to_string(instruction.OpRegisterRegister.Reg1);
+               + "r" + std::to_string(instruction.OpRegisterRegister.RegA) + " "
+               + "r" + std::to_string(instruction.OpRegisterRegister.RegB);
 
     //Instructions that use OpRegisterValue
     case Opcode::MovVal:
@@ -161,14 +170,14 @@ static std::string to_string(const Instruction& instruction)
     case Opcode::XorVal:
     case Opcode::Load:
         return to_string((Opcode)instruction.Op.Opcode, true) + " "
-               + "r" + std::to_string(instruction.OpRegisterValue.Reg0) + " "
+               + "r" + std::to_string(instruction.OpRegisterValue.RegA) + " "
                + std::to_string(instruction.OpRegisterValue.Value);
 
     //Special case for this variant of store
     case Opcode::Store:
         return to_string((Opcode)instruction.Op.Opcode, true) + " "
                + std::to_string(instruction.OpRegisterValue.Value) + " "
-               + "r" + std::to_string(instruction.OpRegisterValue.Reg0);
+               + "r" + std::to_string(instruction.OpRegisterValue.RegA);
 
     //Instructions that use OpAddress
     case Opcode::Jmp:
