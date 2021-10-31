@@ -2,6 +2,18 @@
 #include "utility/String.h"
 #include <iostream>
 
+//Returns true if c is [a-z] || [A-Z]
+bool IsLetter(char c)
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+//Returns true if c is [0-9]
+bool IsNumber(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
 //Detect token with boolean func
 TokenizerRule Rule(Token token, TokenizerMatchFunction func)
 {
@@ -47,13 +59,36 @@ const std::vector<TokenizerRule> Tokenizer::Rules =
     Match(Token::Register6, "r6"),
     Match(Token::Register7, "r7"),
     Rule(Token::Value, [](std::string_view str) -> bool { return String::IsNumber(str); }),
+    Match(Token::Var, "var"),
+    Rule(Token::Label, [](std::string_view str) -> bool
+    {
+        return str.front() == '!';
+    }),
+    Rule(Token::VarName, [](std::string_view str) -> bool //Run last since many other tokens fit variable naming requirements
+    {
+        //Variable names must start with a letter or _
+        if (IsNumber(str.front()))
+            return false;
+        //Variable names can only contain letters, numbers, and _
+        for (const char& c : str)
+            if (!IsLetter(c) && !IsNumber(c) && c != '_')
+                return false;
+
+        return true;
+    }),
 };
 
-std::vector<TokenData> Tokenizer::Tokenize(std::string_view str)
+Result<std::vector<TokenData>, TokenizerError> Tokenizer::Tokenize(std::string_view str)
 {
+    //Split string into lines
+    std::vector<std::string_view> lines = {};
+    if (String::Contains(str, "\r\n"))
+        lines = String::Split(str, "\r\n");
+    else
+        lines = String::Split(str, "\n");
+    
     //Tokenize each line
     std::vector<TokenData> tokens = {};
-    std::vector<std::string_view> lines = String::Split(str, "\n");
     for (std::string_view line : lines)
     {
         //Ignore anything following semicolons (comments)
@@ -74,19 +109,16 @@ std::vector<TokenData> Tokenizer::Tokenize(std::string_view str)
                 {
                     tokens.push_back({ rule.Type, str });
                     match = true;
+                    break;
                 }
             }
 
             //String doesn't match any rules
             if (!match)
-            {
-                //Todo: Add proper logging to files
-                std::cout << "Unknown token: \"" << strLowercase << "\". Ignoring...\n";
-                tokens.push_back({ Token::Unknown, str });
-            }
+                return Error(TokenizerError{ TokenizerErrorCode::UnsupportedToken, "Unsupported token \"" + std::string(strLowercase) + "\" detected in Tokenizer::Tokenize()." });
         }
         tokens.push_back({ Token::Newline, "\n" });
     }
 
-    return tokens;
+    return Success(tokens);
 }

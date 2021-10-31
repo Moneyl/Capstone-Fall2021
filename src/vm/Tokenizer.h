@@ -2,21 +2,23 @@
 #include "Typedefs.h"
 #include "Instruction.h"
 #include <string_view>
+#include "utility/Result.h"
+#include <magic_enum.hpp>
 #include <functional>
 #include <vector>
-#include <magic_enum.hpp>
 
 enum class Token;
 struct TokenData;
 struct TokenizerRule;
+struct TokenizerError;
+enum class TokenizerErrorCode;
 
-//Todo: Consider making this non static and exposing Rules to support more than 1 tokenizer config
 //Identifies tokens within a string
 class Tokenizer
 {
 public:
     //Returns a list of tokens and their substrings. The string must stay alive while the substrings are in use.
-    static std::vector<TokenData> Tokenize(std::string_view str);
+    static Result<std::vector<TokenData>, TokenizerError> Tokenize(std::string_view str);
     static const std::vector<TokenizerRule> Rules;
 };
 
@@ -53,10 +55,12 @@ enum class Token
     Register5,
     Register6,
     Register7,
+    Var,
+    VarName,
+    Label,
     Value,
     Newline,
-    Unknown,
-    None
+    None //Used by the compiler when it does token lookahead and goes out of bounds
 };
 
 //Tokenizer output. Has the token type and the string data for that token.
@@ -80,7 +84,23 @@ struct TokenizerRule
     Token Type;
 };
 
+enum class TokenizerErrorCode
+{
+    UnsupportedToken,
+};
+
+struct TokenizerError
+{
+    TokenizerErrorCode Code;
+    std::string Message;
+};
+
 static std::string to_string(Token token)
 {
     return std::string(magic_enum::enum_name(token));
+}
+
+static std::string to_string(TokenizerErrorCode value)
+{
+    return std::string(magic_enum::enum_name(value));
 }
