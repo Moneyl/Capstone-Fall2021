@@ -43,6 +43,14 @@ namespace String
         return str.compare(0, target.length(), target) == 0; //True if target string is at index 0
     }
 
+    bool EndsWith(std::string_view str, std::string_view target)
+    {
+        if (str.length() >= target.length())
+            return str.compare(str.length() - target.length(), target.length(), target) == 0; //Check if the last n digits of str equal target, where n = target.length()
+        else
+            return false; //target.length() > str.length(). Must be false.
+    }
+
     bool IsNumber(std::string_view str)
     {
         //Todo: Either rename the func to ::IsI32() or maybe just have a bunch of specialized instances with types. E.g. String::IsNumber<i32>()
@@ -67,5 +75,10 @@ namespace String
         //Convert string
         auto res = std::from_chars(begin, end, num, base);
         return (i16)num;
+    }
+
+    bool Contains(std::string_view str, std::string_view search)
+    {
+        return str.find(search) != std::string_view::npos;
     }
 }

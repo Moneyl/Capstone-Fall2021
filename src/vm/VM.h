@@ -1,7 +1,6 @@
 #pragma once
 #include "Typedefs.h"
-#include "Compiler.h"
-#include "utility/Span.h"
+#include "VmProgram.h"
 #include "utility/Result.h"
 #include "Instruction.h"
 
@@ -11,16 +10,43 @@ struct VMError;
 class VM
 {
 public:
-    //Run a program binary
-    Result<void, VMError> Run(Span<Instruction> program);
+    //Constants
+    static const u32 MEMORY_SIZE = 32767; //Note: 1 less than maximum of Register so SP can be one byte past the final memory index when the stack is empty
+    static const u32 NUM_REGISTERS = 8;
+    static_assert(MEMORY_SIZE <= std::numeric_limits<Register>::max(), "VM::MEMORY_SIZE too big! Must be fit inside VM registers. Either make memory smaller or make registers larger (see VM.h)");
+    
+    Result<void, VMError> LoadProgram(const VmProgram& program); //Load program binary
+    Result<void, VMError> Cycle(); //Run a single clock cycle
+    VmValue Load(VmValue address); //Read value from VM memory
+    void Store(VmValue address, VmValue value); //Set value in VM memory
+    void Push(VmValue value); //Push a value onto the stack
+    VmValue Pop(); //Pop a value off of the stack
+    void SetFlags(VmValue result); //Update arithmetic flags
+
+    u32 InstructionsSize() const { return _instructionsSizeBytes; } //The number of bytes that instructions take up in memory
+    u32 VariablesSize() const { return _variablesSizeBytes; } //The number of bytes that variables take up in memory
+
+    u8 Memory[VM::MEMORY_SIZE] = { 0 };
+    Register Registers[VM::NUM_REGISTERS] = { 0 };
+    Register PC = 0; //Memory address of the next instruction to be executed
+    Register SP = VM::MEMORY_SIZE; //Memory address of the top of the stack. Initially just past the end of Memory. Grows down from the top of Memory.
+
+    //Set with the result of arithmetic instructions and with the difference between registers when cmp is executed. Used by conditional jump instructions like jle and jgr.
+    bool FlagZero = false; //True when result == 0
+    bool FlagSign = false; //True when result < 0
 
 private:
-
+    u32 _instructionsSizeBytes = 0; //The number of bytes that the program takes up in memory
+    u32 _variablesSizeBytes = 0; //The number of bytes that variables take up in memory
 };
 
 enum VMErrorCode
 {
-    InvalidInstruction
+    DivideByZero,
+    OutOfBoundsMemoryAccess,
+    StackUnderflow,
+    StackOverflow,
+    UnsupportedInstruction,
 };
 
 //Returned when the VM encounters an error
@@ -29,3 +55,8 @@ struct VMError
     VMErrorCode Code;
     std::string Message;
 };
+
+static std::string to_string(VMErrorCode value)
+{
+    return std::string(magic_enum::enum_name(value));
+}
