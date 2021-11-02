@@ -35,7 +35,7 @@ public:
     {
 #ifdef DEBUG_BUILD //Bounds checking in debug builds
         if (index >= _size)
-            throw std::out_of_range(index);
+            throw std::out_of_range("Span<T>::operator[] out of range. Size = " + std::to_string(_size) + ", Index = " + std::to_string(index));
 #endif
         return _data[index];
     }
@@ -43,7 +43,7 @@ public:
     {
 #ifdef DEBUG_BUILD //Bounds checking in debug builds
         if (index >= _size)
-            throw std::out_of_range(index);
+            throw std::out_of_range("const Span<T>::operator[] out of range. Size = " + std::to_string(_size) + ", Index = " + std::to_string(index));
 #endif
         return _data[index];
     }

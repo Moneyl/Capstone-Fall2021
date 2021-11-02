@@ -1,4 +1,5 @@
 #include "VM.h"
+#include "Compiler.h"
 #include <stdexcept>
 
 /*Common error checks used while executing instructions*/
@@ -40,6 +41,29 @@ Result<void, VMError> VM::LoadProgram(const VmProgram& program)
         Registers[i] = 0;
 
     return Success<void>();
+}
+
+Result<void, VMError> VM::LoadProgram(std::string_view inFilePath)
+{
+    Result<VmProgram, std::string> program = VmProgram::Read(inFilePath);
+    if (program.Error())
+        return Error(VMError{ VMErrorCode::ProgramFileLoadFailure, program.ErrorData() });
+
+    return LoadProgram(program.SuccessData());
+}
+
+Result<void, VMError> VM::LoadProgramFromSource(std::string_view inFilePath)
+{
+    //Compile source code to VM program
+    Compiler compiler;
+    Result<VmProgram, CompilerError> compileResult = compiler.CompileFile(inFilePath);
+    if (compileResult.Error())
+    {
+        CompilerError error = compileResult.ErrorData();
+        return Error(VMError{ VMErrorCode::ProgramFileLoadFailure, error.Message });
+    }
+
+    return LoadProgram(compileResult.SuccessData());
 }
 
 Result<void, VMError> VM::Cycle()

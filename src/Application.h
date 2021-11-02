@@ -21,6 +21,7 @@ public:
     Renderer Renderer;
     Fonts Fonts;
     Gui Gui;
+    VM* Vm;
 
 private:
     bool Init();

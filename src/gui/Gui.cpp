@@ -1,10 +1,16 @@
 #include "Gui.h"
+#include "Application.h"
+#include "ImGuiExt.h"
 #include <imgui.h>
 
 bool ImGuiDemoVisible = true;
-bool TestWindowVisible = true;
+bool VariablesVisible = true;
+bool StackVisible = true;
+bool DisassemblerVisible = true;
+bool VmStateVisible = true;
+bool RobotListVisible = true;
 
-Gui::Gui(Fonts* fonts) : _fonts(fonts)
+Gui::Gui(Application* app) : _app(app)
 {
 
 }
@@ -13,19 +19,27 @@ void Gui::Update(f32 deltaTime)
 {
     //Draw main menu and docking space
     DrawMainMenuBar();
-    if(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
+    if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
         DrawDockspace();
 
     //Draw windows
-    if(TestWindowVisible)
-        DrawTestWindow();
+    if (VariablesVisible)
+        DrawVariables();
+    if (StackVisible)
+        DrawStack();
+    if (DisassemblerVisible)
+        DrawDisassembler();
+    if (VmStateVisible)
+        DrawVmState();
+    if (RobotListVisible)
+        DrawRobotList();
 
-//#ifdef DEBUG_BUILD
+#ifdef DEBUG_BUILD
     //The demo windows code can be found in dependencies/imgui/imgui_demo.cpp
     //There's a live web version of the demo that highlights the code as you mouse over UI elements here: https://pthom.github.io/imgui_manual_online/manual/imgui_manual.html
-    if(ImGuiDemoVisible)
+    if (ImGuiDemoVisible)
         ImGui::ShowDemoWindow();
-//#endif
+#endif
 }
 
 void Gui::DrawMainMenuBar()
@@ -43,13 +57,29 @@ void Gui::DrawMainMenuBar()
 
         if (ImGui::BeginMenu("View"))
         {
-//#ifdef DEBUG_BUILD
+#ifdef DEBUG_BUILD
             if (ImGui::MenuItem("ImGui demo", "", &ImGuiDemoVisible))
             {
 
             }
-//#endif
-            if (ImGui::MenuItem("Test window", "", &TestWindowVisible))
+#endif
+            if (ImGui::MenuItem(ICON_FA_SUBSCRIPT "Variables", "", &VariablesVisible))
+            {
+
+            }
+            if (ImGui::MenuItem(ICON_FA_TH_LIST "Stack", "", &StackVisible))
+            {
+
+            }
+            if (ImGui::MenuItem(ICON_FA_CODE "Disassembler", "", &DisassemblerVisible))
+            {
+
+            }
+            if (ImGui::MenuItem(ICON_FA_MEMORY "VM state", "", &VmStateVisible))
+            {
+
+            }
+            if (ImGui::MenuItem(ICON_FA_ROBOT "Robots", "", &RobotListVisible))
             {
 
             }
@@ -92,40 +122,139 @@ void Gui::DrawDockspace()
     ImGui::End();
 }
 
-void Gui::DrawTestWindow()
+void Gui::DrawVariables()
 {
-    if (!ImGui::Begin("Test window", &TestWindowVisible))
+    if (!ImGui::Begin(ICON_FA_SUBSCRIPT " Variables", &VariablesVisible))
     {
         //Exit early if the window is closed
         ImGui::End();
         return;
     }
+    VM* vm = _app->Vm;
 
-    _fonts->Large.Push();
-    ImGui::Text(ICON_FA_BUG " Test window");
-    _fonts->Large.Pop();
+    _app->Fonts.Large.Push();
+    ImGui::Text("Variables");
+    _app->Fonts.Large.Pop();
     ImGui::Separator();
 
-    ImGui::Text("Notes:");
 
-    ImGui::Bullet();
-    ImGui::SameLine();
-    ImGui::TextWrapped("All windows are dockable. Click and drag the titlebar onto one of the blue zones that appear.");
+    ImGui::End();
+}
 
-    ImGui::Bullet();
-    ImGui::SameLine();
-    ImGui::TextWrapped("See src/gui/Gui.cpp for this windows code and links to other examples.");
+void Gui::DrawStack()
+{
+    if (!ImGui::Begin(ICON_FA_TH_LIST " Stack", &StackVisible))
+    {
+        ImGui::End();
+        return;
+    }
+    VM* vm = _app->Vm;
 
+    _app->Fonts.Large.Push();
+    ImGui::Text("Stack");
+    _app->Fonts.Large.Pop();
     ImGui::Separator();
 
-    static bool testBool = false;
-    ImGui::Checkbox("Test bool", &testBool);
-    static f32 testFloat = 100.0f;
-    ImGui::InputFloat("Test float", &testFloat);
-    ImGui::SliderFloat("Test float slider", &testFloat, 0.0f, 1024.0f);
-    
-    static ImVec4 testColor = { 1.0f, 1.0f, 0.0f, 1.0f };
-    ImGui::ColorPicker4("Test color", (f32*)&testColor);
+
+    ImGui::End();
+}
+
+void Gui::DrawDisassembler()
+{
+    if (!ImGui::Begin(ICON_FA_CODE " Disassembler", &DisassemblerVisible))
+    {
+        ImGui::End();
+        return;
+    }
+    VM* vm = _app->Vm;
+
+    _app->Fonts.Large.Push();
+    ImGui::Text("Disassembler");
+    _app->Fonts.Large.Pop();
+    ImGui::Separator();
+
+    //Options
+    static bool useRealOpcodeNames = false;
+    if (ImGui::CollapsingHeader("Options"))
+    {
+        const f32 indent = 15.0f;
+        ImGui::Indent(indent);
+
+        ImGui::Checkbox("Use opcode names", &useRealOpcodeNames);
+        ImGui::SameLine();
+        ImGui::HelpMarker("If checked, actual opcode names are used instead of assembly instruction names. "
+                          "Some assembly instructions can be converted to multiple different opcodes depending on their arguments.", _app->Fonts.Medium.GetPtr());
+
+        ImGui::Unindent(indent);
+    }
+
+    //Draw disassembler output
+    ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
+        ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
+        ImGuiTableFlags_Hideable;
+    if (ImGui::BeginTable("DisassemblerTable", 2, tableFlags))
+    {
+        //Setup columns
+        ImGui::TableSetupScrollFreeze(0, 1); //Make header row always visible when scrolling
+        ImGui::TableSetupColumn("Address", ImGuiTableFlags_None);
+        ImGui::TableSetupColumn("Disassembly", ImGuiTableFlags_None);
+        ImGui::TableHeadersRow();
+
+        //Fill cells
+        const Span<Instruction> instructions = _app->Vm->Instructions();
+        for (u32 i = 0; i < instructions.size(); i++)
+        {
+            ImGui::TableNextRow();
+            const Instruction& instruction = instructions[i];
+            u32 address = (u8*)&instruction - _app->Vm->Memory; //Instruction address in VM memory
+
+            //Column 0
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(std::to_string(address).c_str());
+
+            //Column 1
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text(to_string(instruction, useRealOpcodeNames).c_str());
+        }
+
+        ImGui::EndTable();
+    }
+
+    ImGui::End();
+}
+
+void Gui::DrawVmState()
+{
+    if (!ImGui::Begin(ICON_FA_MEMORY " VM state", &VmStateVisible))
+    {
+        ImGui::End();
+        return;
+    }
+    VM* vm = _app->Vm;
+
+    _app->Fonts.Large.Push();
+    ImGui::Text("VM state");
+    _app->Fonts.Large.Pop();
+    ImGui::Separator();
+
+
+    ImGui::End();
+}
+
+void Gui::DrawRobotList()
+{
+    if (!ImGui::Begin(ICON_FA_ROBOT " Robots", &RobotListVisible))
+    {
+        ImGui::End();
+        return;
+    }
+    VM* vm = _app->Vm;
+
+    _app->Fonts.Large.Push();
+    ImGui::Text("Robots");
+    _app->Fonts.Large.Pop();
+    ImGui::Separator();
+
 
     ImGui::End();
 }

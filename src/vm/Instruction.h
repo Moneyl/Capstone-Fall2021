@@ -112,12 +112,12 @@ enum class Opcode
     Pop = 31        //pop register
 };
 
-static std::string to_string(Opcode opcode, bool disasmMode = false)
+static std::string to_string(Opcode opcode, bool useRealOpcodeNames = false)
 {
     std::string str(magic_enum::enum_name(opcode));
 
     //Make lowercase and strip extra specifiers for disassembler use. E.g. Jmp -> jmp, MovVal -> mov
-    if (disasmMode)
+    if (!useRealOpcodeNames)
     {
         //Make lowercase
         str = String::ToLower(str);
@@ -138,7 +138,7 @@ static std::string to_string(Opcode opcode, bool disasmMode = false)
     return str;
 }
 
-static std::string to_string(const Instruction& instruction)
+static std::string to_string(const Instruction& instruction, bool useRealOpcodeNames = false)
 {
     switch ((Opcode)instruction.Op.Opcode)
     {
@@ -154,7 +154,7 @@ static std::string to_string(const Instruction& instruction)
     case Opcode::Xor:
     case Opcode::LoadP:
     case Opcode::StoreP:
-        return to_string((Opcode)instruction.Op.Opcode, true) + " "
+        return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + "r" + std::to_string(instruction.OpRegisterRegister.RegA) + " "
                + "r" + std::to_string(instruction.OpRegisterRegister.RegB);
 
@@ -169,13 +169,13 @@ static std::string to_string(const Instruction& instruction)
     case Opcode::OrVal:
     case Opcode::XorVal:
     case Opcode::Load:
-        return to_string((Opcode)instruction.Op.Opcode, true) + " "
+        return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + "r" + std::to_string(instruction.OpRegisterValue.RegA) + " "
                + std::to_string(instruction.OpRegisterValue.Value);
 
     //Special case for this variant of store
     case Opcode::Store:
-        return to_string((Opcode)instruction.Op.Opcode, true) + " "
+        return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + std::to_string(instruction.OpRegisterValue.Value) + " "
                + "r" + std::to_string(instruction.OpRegisterValue.RegA);
 
@@ -186,18 +186,18 @@ static std::string to_string(const Instruction& instruction)
     case Opcode::Jgr:
     case Opcode::Jls:
     case Opcode::Call:
-        return to_string((Opcode)instruction.Op.Opcode, true) + " "
+        return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + std::to_string(instruction.OpAddress.Address);
 
     //Instructions that use Op
     case Opcode::Ret:
-        return to_string((Opcode)instruction.Op.Opcode, true);
+        return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames);
 
     //Instructions that use OpRegister
     case Opcode::Neg:
     case Opcode::Push:
     case Opcode::Pop:
-        return to_string((Opcode)instruction.Op.Opcode, true) + " "
+        return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + "r" + std::to_string(instruction.OpRegister.Reg);
 
     default:

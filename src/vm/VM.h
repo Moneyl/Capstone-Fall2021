@@ -2,6 +2,7 @@
 #include "Typedefs.h"
 #include "VmProgram.h"
 #include "utility/Result.h"
+#include "utility/Span.h"
 #include "Instruction.h"
 
 struct VMError;
@@ -16,6 +17,8 @@ public:
     static_assert(MEMORY_SIZE <= std::numeric_limits<Register>::max(), "VM::MEMORY_SIZE too big! Must be fit inside VM registers. Either make memory smaller or make registers larger (see VM.h)");
     
     Result<void, VMError> LoadProgram(const VmProgram& program); //Load program binary
+    Result<void, VMError> LoadProgram(std::string_view inFilePath); //Load program binary from file
+    Result<void, VMError> LoadProgramFromSource(std::string_view inFilePath); //Compile and load program from source file
     Result<void, VMError> Cycle(); //Run a single clock cycle
     VmValue Load(VmValue address); //Read value from VM memory
     void Store(VmValue address, VmValue value); //Set value in VM memory
@@ -25,6 +28,9 @@ public:
 
     u32 InstructionsSize() const { return _instructionsSizeBytes; } //The number of bytes that instructions take up in memory
     u32 VariablesSize() const { return _variablesSizeBytes; } //The number of bytes that variables take up in memory
+
+    //Get a non-owning view of the program instructions
+    const Span<Instruction> Instructions() { return Span<Instruction>((Instruction*)&Memory[0], InstructionsSize() / sizeof(Instruction)); };
 
     u8 Memory[VM::MEMORY_SIZE] = { 0 };
     Register Registers[VM::NUM_REGISTERS] = { 0 };
@@ -47,6 +53,7 @@ enum VMErrorCode
     StackUnderflow,
     StackOverflow,
     UnsupportedInstruction,
+    ProgramFileLoadFailure,
 };
 
 //Returned when the VM encounters an error

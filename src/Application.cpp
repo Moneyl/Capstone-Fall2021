@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "utility/Platform.h"
+#include "vm/VM.h"
 #include <iostream>
 
 bool Application::Run()
@@ -43,7 +44,9 @@ bool Application::Init()
     }
     Renderer = { _window, _display, _rendererSDL, &Fonts };
 
-    Gui = { &Fonts };
+    Gui = { this };
+    Vm = new VM();
+    Vm->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
 
     return true;
 }
@@ -92,6 +95,7 @@ bool Application::Shutdown()
     _window = nullptr;
 
     SDL_Quit();
+    delete Vm;
     return true;
 }
 
