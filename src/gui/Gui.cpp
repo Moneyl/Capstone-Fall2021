@@ -137,6 +137,36 @@ void Gui::DrawVariables()
     _app->Fonts.Large.Pop();
     ImGui::Separator();
 
+    //Variables table
+    ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
+        ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
+        ImGuiTableFlags_Hideable;
+    if (ImGui::BeginTable("VariablesTable", 2, tableFlags))
+    {
+        //Setup columns
+        ImGui::TableSetupScrollFreeze(0, 1); //Make header row always visible when scrolling
+        ImGui::TableSetupColumn("Address", ImGuiTableFlags_None);
+        ImGui::TableSetupColumn("Value", ImGuiTableFlags_None);
+        //Todo: Add variable names. Requires debug information stored in VmProgram
+        ImGui::TableHeadersRow();
+
+        //Fill table
+        const Span<VmValue> variables = vm->Variables();
+        for (const VmValue& variable : variables)
+        {
+            ImGui::TableNextRow();
+
+            //Column 0
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(std::to_string((u8*)&variable - vm->Memory));
+
+            //Column 1
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text(std::to_string(variable));
+        }
+
+        ImGui::EndTable();
+    }
 
     ImGui::End();
 }
@@ -155,6 +185,34 @@ void Gui::DrawStack()
     _app->Fonts.Large.Pop();
     ImGui::Separator();
 
+    //Stack table
+    ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
+        ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
+        ImGuiTableFlags_Hideable;
+    if (ImGui::BeginTable("StackTable", 2, tableFlags))
+    {
+        //Setup columns
+        ImGui::TableSetupScrollFreeze(0, 1); //Make header row always visible when scrolling
+        ImGui::TableSetupColumn("Address", ImGuiTableFlags_None);
+        ImGui::TableSetupColumn("Value", ImGuiTableFlags_None);
+        ImGui::TableHeadersRow();
+
+        //Fill table
+        for (u32 i = VM::MEMORY_SIZE; i > vm->SP; i -= sizeof(VmValue))
+        {
+            ImGui::TableNextRow();
+
+            //Column 0
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(std::to_string(i));
+
+            //Column 1
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text(std::to_string(*(VmValue*)&vm->Memory[i]));
+        }
+
+        ImGui::EndTable();
+    }
 
     ImGui::End();
 }
@@ -200,7 +258,7 @@ void Gui::DrawDisassembler()
         ImGui::TableSetupColumn("Disassembly", ImGuiTableFlags_None);
         ImGui::TableHeadersRow();
 
-        //Fill cells
+        //Fill table
         const Span<Instruction> instructions = _app->Vm->Instructions();
         for (u32 i = 0; i < instructions.size(); i++)
         {
@@ -237,6 +295,54 @@ void Gui::DrawVmState()
     _app->Fonts.Large.Pop();
     ImGui::Separator();
 
+    ImGui::LabelAndValue("Memory size:", std::to_string(vm->MEMORY_SIZE) + " bytes");
+    ImGui::LabelAndValue("Program size:", std::to_string(vm->InstructionsSize()) + " bytes");
+    ImGui::LabelAndValue("Variables size:", std::to_string(vm->VariablesSize()) + " bytes");
+    ImGui::LabelAndValue("Stack size:", std::to_string(vm->StackSize()) + "/" + std::to_string(vm->MaxStackSize()) + " bytes");
+
+    //Draw registers in table
+    ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
+        ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
+        ImGuiTableFlags_Hideable;
+    if (ImGui::BeginTable("RegistersTable", 2, tableFlags))
+    {
+        //Setup columns
+        ImGui::TableSetupScrollFreeze(0, 1); //Make header row always visible when scrolling
+        ImGui::TableSetupColumn("Register", ImGuiTableFlags_None);
+        ImGui::TableSetupColumn("Value", ImGuiTableFlags_None);
+        ImGui::TableHeadersRow();
+
+        //Fill table
+        for (u32 i = 0; i < VM::NUM_REGISTERS; i++)
+        {
+            ImGui::TableNextRow();
+            
+            //Column 0
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("r" + std::to_string(i));
+
+            //Column 1
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text(std::to_string(vm->Registers[i]));
+        }
+
+        //Special registers
+        //PC
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text("PC");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Text(std::to_string(vm->PC));
+
+        //SP
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text("SP");
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Text(std::to_string(vm->SP));
+
+        ImGui::EndTable();
+    }
 
     ImGui::End();
 }

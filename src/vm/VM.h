@@ -12,7 +12,7 @@ class VM
 {
 public:
     //Constants
-    static const u32 MEMORY_SIZE = 32767; //Note: 1 less than maximum of Register so SP can be one byte past the final memory index when the stack is empty
+    static const u32 MEMORY_SIZE = 32766; //Note: Less than VmValue max so SP can be set out of bounds to signify an empty stack
     static const u32 NUM_REGISTERS = 8;
     static_assert(MEMORY_SIZE <= std::numeric_limits<Register>::max(), "VM::MEMORY_SIZE too big! Must be fit inside VM registers. Either make memory smaller or make registers larger (see VM.h)");
     
@@ -28,9 +28,13 @@ public:
 
     u32 InstructionsSize() const { return _instructionsSizeBytes; } //The number of bytes that instructions take up in memory
     u32 VariablesSize() const { return _variablesSizeBytes; } //The number of bytes that variables take up in memory
+    u32 StackSize() const { return VM::MEMORY_SIZE - SP; } //The number of bytes that the stack is using currently
+    u32 MaxStackSize() const { return VM::MEMORY_SIZE - InstructionsSize() - VariablesSize(); } //Max bytes the stack can use
 
     //Get a non-owning view of the program instructions
     const Span<Instruction> Instructions() { return Span<Instruction>((Instruction*)&Memory[0], InstructionsSize() / sizeof(Instruction)); };
+    //Get a non-owning view of the programs variables
+    const Span<VmValue> Variables() { return Span<VmValue>((VmValue*)&Memory[InstructionsSize()], VariablesSize() / sizeof(VmValue)); };
 
     u8 Memory[VM::MEMORY_SIZE] = { 0 };
     Register Registers[VM::NUM_REGISTERS] = { 0 };

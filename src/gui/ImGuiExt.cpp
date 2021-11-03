@@ -39,5 +39,17 @@ namespace ImGui
             ImGui::PopFont();
         }
     }
+
+    void LabelAndValue(std::string_view label, std::string_view value)
+    {
+        //Draw label
+        ImGui::TextUnformatted(label);
+        
+        //Draw value on same line with secondary color
+        ImGui::SameLine();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::SecondaryColor);
+        ImGui::TextUnformatted(value);
+        ImGui::PopStyleColor();
+    }
 }
 
