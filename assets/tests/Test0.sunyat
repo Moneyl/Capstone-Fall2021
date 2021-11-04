@@ -2,17 +2,11 @@
 ;;; Test0.sunyat
 ;;; Tests out various instructions, labels, variables, and the stack
 
-jmp !label1
-
 !label0
 sub r0 88
-jmp !label2
+jmp !label1
 
 !label1
-add r2 10
-jmp !label0
-
-!label2
 add r4 67
 add r5 100
 store a r5

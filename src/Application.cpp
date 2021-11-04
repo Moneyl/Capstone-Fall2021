@@ -46,7 +46,8 @@ bool Application::Init()
 
     Gui = { this };
     Vm = new VM();
-    Vm->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
+    std::string testProgramFilename = "tests/Test1.sunyat";
+    Vm->LoadProgramFromSource(BuildConfig::AssetFolderPath + testProgramFilename);
 
     return true;
 }
@@ -63,6 +64,19 @@ bool Application::MainLoop()
         //Handle queued SDL events
         while (SDL_PollEvent(&event))
             HandleEvent(&event);
+
+        //Update VM
+        for (u32 i = 0; i < VmCyclesPerFrame; i++)
+        {
+            Result<void, VMError> cycleResult = Vm->Cycle();
+            if (cycleResult.Error())
+            {
+                VMError& error = cycleResult.ErrorData();
+                printf("Error in VM::Cycle()! Code: %s, Message: %s\n", to_string(error.Code).c_str(), error.Message.c_str());
+                //Todo: Report error and pause this VM only instead of exiting
+                return false;
+            }
+        }
 
         //Update app logic
         Gui.Update(_deltaTime);

@@ -4,6 +4,7 @@
 #include "utility/Result.h"
 #include "utility/Span.h"
 #include "Instruction.h"
+#include <unordered_map>
 
 struct VMError;
 
@@ -46,8 +47,53 @@ public:
     bool FlagSign = false; //True when result < 0
 
 private:
+    //Executes _instruction and increments PC
+    Result<void, VMError> Execute();
+
     u32 _instructionsSizeBytes = 0; //The number of bytes that the program takes up in memory
     u32 _variablesSizeBytes = 0; //The number of bytes that variables take up in memory
+
+    //Current instruction being executed by the VM. Used for instructions that take > 1 cycle to execute.
+    Instruction* _instruction = nullptr;
+    u32 _instructionCyclesRemaining = 0;
+
+public:
+    //The number of cycles it takes to execute each instruction
+    const std::unordered_map<Opcode, u32> InstructionTimes =
+    {
+        { Opcode::Mov,    1 },
+        { Opcode::MovVal, 1 },
+        { Opcode::Add,    1 },
+        { Opcode::AddVal, 1 },
+        { Opcode::Sub,    1 },
+        { Opcode::SubVal, 1 },
+        { Opcode::Mul,    2 },
+        { Opcode::MulVal, 2 },
+        { Opcode::Div,    2 },
+        { Opcode::DivVal, 2 },
+        { Opcode::Cmp,    1 },
+        { Opcode::CmpVal, 1 },
+        { Opcode::Jmp,    1 },
+        { Opcode::Jeq,    1 },
+        { Opcode::Jne,    1 },
+        { Opcode::Jgr,    1 },
+        { Opcode::Jls,    1 },
+        { Opcode::Call,   1 },
+        { Opcode::Ret,    1 },
+        { Opcode::And,    1 },
+        { Opcode::AndVal, 1 },
+        { Opcode::Or,     1 },
+        { Opcode::OrVal,  1 },
+        { Opcode::Xor,    1 },
+        { Opcode::XorVal, 1 },
+        { Opcode::Neg,    1 },
+        { Opcode::Load,   4 },
+        { Opcode::LoadP,  4 },
+        { Opcode::Store,  4 },
+        { Opcode::StoreP, 4 },
+        { Opcode::Push,   1 },
+        { Opcode::Pop,    1 },
+    };
 };
 
 enum VMErrorCode

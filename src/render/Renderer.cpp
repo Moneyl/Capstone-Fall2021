@@ -63,6 +63,11 @@ void Renderer::Update(f32 deltaTime)
     SDL_Rect rect = { _windowWidth * 0.4f, _windowHeight * 0.4f, _windowWidth * 0.2f, _windowHeight * 0.3f };
     SDL_RenderFillRect(_renderer, &rect);
 
+    //Purple
+    SDL_SetRenderDrawColor(_renderer, 200, 0, 255, 255);
+    SDL_Rect rect2 = { _windowWidth * 0.7f, _windowHeight * 0.7f, _windowWidth * 0.2f, _windowHeight * 0.7f };
+    SDL_RenderFillRect(_renderer, &rect2);
+
     //Green line
     SDL_SetRenderDrawColor(_renderer, 0, 255, 0, 255);
     SDL_RenderDrawLine(_renderer, _windowWidth * 0.3f, _windowHeight * 0.3f, _windowWidth * 0.3f, _windowHeight * 0.8f);

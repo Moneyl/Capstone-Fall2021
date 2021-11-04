@@ -68,23 +68,67 @@ Result<void, VMError> VM::LoadProgramFromSource(std::string_view inFilePath)
 
 Result<void, VMError> VM::Cycle()
 {
-    //Execute a single instruction
-    //Store PC prior to incrementing it for error reporting
-    const Register lastPC = PC;
+    if (_instruction) //Continue executing instruction
+    {
+        if (_instructionCyclesRemaining <= 1) //All cycles elapsed, execute instruction
+        {
+            Result<void, VMError> result = Execute();
+            _instruction = nullptr;
+            _instructionCyclesRemaining = 0;
+            return result;
+        }
+        else //More cycles, decrement and continue
+        {
+            _instructionCyclesRemaining--;
+        }
+    }
+    else //Fetch next instruction
+    {
+        //Reset PC to first instruction if it's out of bounds
+        if (PC >= InstructionsSize())
+            PC = 0;
 
-    //Fetch next instruction
-    Instruction& instruction = *(Instruction*)(&Memory[PC]);
+        //Fetch next instruction
+        _instruction = (Instruction*)(&Memory[PC]);
+
+        //Get number of cycles the instruction takes to execute
+        auto search = InstructionTimes.find((Opcode)_instruction->Op.Opcode);
+        if (search == InstructionTimes.end())
+            return Error(VMError{ VMErrorCode::UnsupportedInstruction, "Unsupported opcode '" + std::to_string((u32)_instruction->Op.Opcode) + "' decoded by VM." });
+        _instructionCyclesRemaining = search->second;
+
+        if (_instructionCyclesRemaining <= 1) //Execute the instruction now if it takes 1 cycle
+        {
+            Result<void, VMError> result = Execute();
+            _instruction = nullptr;
+            _instructionCyclesRemaining = 0;
+            return result;
+        }
+        else //Otherwise decrement the cycle counter
+        {
+            _instructionCyclesRemaining--;
+        }
+    }
+
+    return Success<void>();
+}
+
+//Decodes and executes _instruction
+//_instruction is fetched by VM::Cycle()
+Result<void, VMError> VM::Execute()
+{
+    u32 lastPC = PC; //Store before incrementing for error messages
     PC += sizeof(Instruction);
 
-    //Decode instruction
-    Opcode opcode = (Opcode)instruction.Op.Opcode;
+    //Decode
+    Opcode opcode = (Opcode)_instruction->Op.Opcode;
     //Only some of these are valid depending on the opcode. See vm/Instructions.h for info on the data used by each instruction.
-    u16 regA = instruction.OpRegisterRegister.RegA;
-    u16 regB = instruction.OpRegisterRegister.RegB;
-    i16 value = instruction.OpRegisterValue.Value;
-    u16 address = instruction.OpAddress.Address;
+    u16 regA = _instruction->OpRegisterRegister.RegA;
+    u16 regB = _instruction->OpRegisterRegister.RegB;
+    i16 value = _instruction->OpRegisterValue.Value;
+    u16 address = _instruction->OpAddress.Address;
 
-    //Execute instruction
+    //Execute
     switch (opcode)
     {
     case Opcode::Mov:
@@ -220,11 +264,12 @@ Result<void, VMError> VM::Cycle()
         Registers[regA] = Pop();
         break;
     default:
-        return Error(VMError{ VMErrorCode::UnsupportedInstruction, "Unsupported opcode '" + std::to_string((u32)instruction.Op.Opcode) + "' decoded by VM." });
+        return Error(VMError{ VMErrorCode::UnsupportedInstruction, "Unsupported opcode '" + std::to_string((u32)_instruction->Op.Opcode) + "' decoded by VM." });
     }
 
     return Success<void>();
 }
+
 
 VmValue VM::Load(VmValue address)
 {

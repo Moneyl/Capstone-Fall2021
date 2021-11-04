@@ -22,6 +22,13 @@ void Gui::Update(f32 deltaTime)
     if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
         DrawDockspace();
 
+#ifdef DEBUG_BUILD
+    //The demo windows code can be found in dependencies/imgui/imgui_demo.cpp
+    //There's a live web version of the demo that highlights the code as you mouse over UI elements here: https://pthom.github.io/imgui_manual_online/manual/imgui_manual.html
+    if (ImGuiDemoVisible)
+        ImGui::ShowDemoWindow();
+#endif
+
     //Draw windows
     if (VariablesVisible)
         DrawVariables();
@@ -33,13 +40,6 @@ void Gui::Update(f32 deltaTime)
         DrawVmState();
     if (RobotListVisible)
         DrawRobotList();
-
-#ifdef DEBUG_BUILD
-    //The demo windows code can be found in dependencies/imgui/imgui_demo.cpp
-    //There's a live web version of the demo that highlights the code as you mouse over UI elements here: https://pthom.github.io/imgui_manual_online/manual/imgui_manual.html
-    if (ImGuiDemoVisible)
-        ImGui::ShowDemoWindow();
-#endif
 }
 
 void Gui::DrawMainMenuBar()
@@ -63,23 +63,23 @@ void Gui::DrawMainMenuBar()
 
             }
 #endif
-            if (ImGui::MenuItem(ICON_FA_SUBSCRIPT "Variables", "", &VariablesVisible))
+            if (ImGui::MenuItem(ICON_FA_SUBSCRIPT " Variables", "", &VariablesVisible))
             {
 
             }
-            if (ImGui::MenuItem(ICON_FA_TH_LIST "Stack", "", &StackVisible))
+            if (ImGui::MenuItem(ICON_FA_TH_LIST " Stack", "", &StackVisible))
             {
 
             }
-            if (ImGui::MenuItem(ICON_FA_CODE "Disassembler", "", &DisassemblerVisible))
+            if (ImGui::MenuItem(ICON_FA_CODE " Disassembler", "", &DisassemblerVisible))
             {
 
             }
-            if (ImGui::MenuItem(ICON_FA_MEMORY "VM state", "", &VmStateVisible))
+            if (ImGui::MenuItem(ICON_FA_MEMORY " VM state", "", &VmStateVisible))
             {
 
             }
-            if (ImGui::MenuItem(ICON_FA_ROBOT "Robots", "", &RobotListVisible))
+            if (ImGui::MenuItem(ICON_FA_ROBOT " Robots", "", &RobotListVisible))
             {
 
             }
@@ -250,12 +250,13 @@ void Gui::DrawDisassembler()
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
         ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
         ImGuiTableFlags_Hideable;
-    if (ImGui::BeginTable("DisassemblerTable", 2, tableFlags))
+    if (ImGui::BeginTable("DisassemblerTable", 3, tableFlags))
     {
         //Setup columns
         ImGui::TableSetupScrollFreeze(0, 1); //Make header row always visible when scrolling
         ImGui::TableSetupColumn("Address", ImGuiTableFlags_None);
         ImGui::TableSetupColumn("Disassembly", ImGuiTableFlags_None);
+        ImGui::TableSetupColumn("Cycles", ImGuiTableFlags_None);
         ImGui::TableHeadersRow();
 
         //Fill table
@@ -273,6 +274,10 @@ void Gui::DrawDisassembler()
             //Column 1
             ImGui::TableSetColumnIndex(1);
             ImGui::Text(to_string(instruction, useRealOpcodeNames).c_str());
+
+            //Column 2
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text(std::to_string(_app->Vm->InstructionTimes.find((Opcode)instruction.Op.Opcode)->second).c_str());
         }
 
         ImGui::EndTable();
@@ -295,6 +300,9 @@ void Gui::DrawVmState()
     _app->Fonts.Large.Pop();
     ImGui::Separator();
 
+    const u32 min = 0;
+    const u32 max = 10000;
+    ImGui::SliderScalar("Cycles / frame", ImGuiDataType_U32, &_app->VmCyclesPerFrame, &min, &max);
     ImGui::LabelAndValue("Memory size:", std::to_string(vm->MEMORY_SIZE) + " bytes");
     ImGui::LabelAndValue("Program size:", std::to_string(vm->InstructionsSize()) + " bytes");
     ImGui::LabelAndValue("Variables size:", std::to_string(vm->VariablesSize()) + " bytes");

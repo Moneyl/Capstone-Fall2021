@@ -22,6 +22,7 @@ public:
     Fonts Fonts;
     Gui Gui;
     VM* Vm;
+    u32 VmCyclesPerFrame = 100; //# VM cycles to run each app frame
 
 private:
     bool Init();
