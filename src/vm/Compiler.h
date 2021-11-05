@@ -30,6 +30,7 @@ enum class CompilerErrorCode
     TokenizationError,
     DuplicateLabel,
     DuplicateVariable,
+    DuplicateConstant,
 };
 
 struct CompilerError

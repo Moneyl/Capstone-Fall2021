@@ -60,6 +60,7 @@ const std::vector<TokenizerRule> Tokenizer::Rules =
     Match(Token::Register7, "r7"),
     Rule(Token::Value, [](std::string_view str) -> bool { return String::IsNumber(str); }),
     Match(Token::Var, "var"),
+    Match(Token::Constant, "const"),
     Rule(Token::Label, [](std::string_view str) -> bool
     {
         return str.front() == '!';

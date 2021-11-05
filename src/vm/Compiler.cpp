@@ -1,14 +1,25 @@
 #include "Compiler.h"
 #include "utility/File.h"
 #include "utility/String.h"
-#include <unordered_map>
 #include <stdexcept>
 #include <string>
 
-struct VariableData
+struct Label
 {
+    std::string_view Name;
+    size_t Address;
+};
+struct Variable
+{
+    std::string_view Name;
     VmValue Address; //Address relative to the start of the variable block of the program
     VmValue InitialValue; //Initial value set at compile time
+    bool Constant;
+};
+struct Patch //Info about an instruction that needs to be patched in compile step 2
+{
+    size_t Index; //Index of the instruction to patch
+    std::string_view Name; //Name of the label, variable, or constant that needs to be patched in
 };
 
 Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>& tokens)
@@ -24,13 +35,13 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
     //Instructions generated from tokens
     std::vector<Instruction> instructions = {};
 
-    //Labels + indices of the instructions that need label addresses patched
-    std::unordered_map<std::string_view, u32> labels = {};
-    std::vector<std::tuple<u32, std::string_view>> jumpPatchIndices = {}; //Instruction address + label string
+    //Data collected during step 1 and used in step 2
+    std::vector<Label> labels = {}; //Used over std::map<> for insertion based ordering. Easier to debug.
+    std::vector<Variable> variables = {};
 
-    //Variables + indices of instructions that need variable addresses patched
-    std::unordered_map<std::string_view, VariableData> variableMap = {};
-    std::vector<std::tuple<u32, std::string_view>> varPatchIndices = {}; //Instruction address + label string
+    //Instructions that need to be patched in step 2
+    std::vector<Patch> labelPatches = {};
+    std::vector<Patch> variablePatches = {};
 
     //Peek ahead in the token list. Returns Token::NONE if curTokenIndex + distance is out of bounds
     auto PeekToken = [&](u32 distance) -> TokenData { return (curTokenIndex + distance < tokens.size()) ? tokens[curTokenIndex + distance] : TokenData{ Token::None, "" }; };
@@ -70,7 +81,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 instruction.OpRegisterRegister.RegB = GetRegisterIndex(next2.Type);
                 curTokenIndex += 4;
             }
-            else if (next.IsRegister() && next2.Type == Token::Value && next3.Type == Token::Newline)
+            else if (next.IsRegister() && next2.Type == Token::Value && next3.Type == Token::Newline) //op register value
             {
                 //The Token enum is equivalent to the Opcode enum for easy conversion
                 //Opcodes that have register and value variants can be converted by adding 1. E.g. Mov = 0, MovVal = Mov + 1
@@ -78,6 +89,16 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
                 instruction.OpRegisterValue.Value = String::ToShort(next2.String);
                 curTokenIndex += 4;
+            }
+            else if (next.IsRegister() && next2.Type == Token::VarName && next3.Type == Token::Newline) //op register constant
+            {
+                instruction.OpRegisterValue.Opcode = (u16)(cur.Type) + 1;
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterValue.Value = 0; //Patched in compile step 2
+                curTokenIndex += 4;
+
+                //Mark instruction for constant patching in step 2
+                variablePatches.push_back({ instructions.size(), next2.String });
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid syntax. Expects '" + to_string(cur.Type) + " register (register|value)'" });
@@ -93,7 +114,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 instruction.OpRegisterValue.Value = String::ToShort(next2.String);
                 curTokenIndex += 4;
             }
-            else if (next.IsRegister() && next2.Type == Token::VarName && next3.Type == Token::Newline) //Load the value of a variable
+            else if (next.IsRegister() && next2.Type == Token::VarName && next3.Type == Token::Newline) //Load the value of a variable or from a constant address
             {
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Load;
                 instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
@@ -101,7 +122,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 curTokenIndex += 4;
 
                 //Mark instruction for variable address patching
-                varPatchIndices.push_back({ instructions.size(), next2.String });
+                variablePatches.push_back({ instructions.size(), next2.String });
             }
             else if (next.IsRegister() && next2.IsRegister() && next3.Type == Token::Newline)
             {
@@ -124,7 +145,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 instruction.OpRegisterValue.RegA = GetRegisterIndex(next2.Type);
                 curTokenIndex += 4;
             }
-            else if (next.Type == Token::VarName && next2.IsRegister() && next3.Type == Token::Newline) //Store register value in variable
+            else if (next.Type == Token::VarName && next2.IsRegister() && next3.Type == Token::Newline) //Store register value in variable or from a constant address
             {
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Store;
                 instruction.OpRegisterValue.Value = 0; //Patched in compile step 2
@@ -132,7 +153,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 curTokenIndex += 4;
 
                 //Mark instruction for variable address patching
-                varPatchIndices.push_back({ instructions.size(), next.String });
+                variablePatches.push_back({ instructions.size(), next.String });
             }
             else if (next.IsRegister() && next2.IsRegister() && next3.Type == Token::Newline)
             {
@@ -166,7 +187,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 curTokenIndex += 3;
 
                 //Mark instruction for label address patching
-                jumpPatchIndices.push_back({ instructions.size(), next.String });
+                labelPatches.push_back({ instructions.size(), next.String });
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid syntax. Expects '" + to_string(cur.Type) + " address'" });
@@ -209,14 +230,43 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
             if (next.Type == Token::VarName && next2.Type == Token::Value && next3.Type == Token::Newline)
             {
                 //Don't allow duplicate variables
-                if (variableMap.find(next.String) != variableMap.end())
-                    return Error(CompilerError{ CompilerErrorCode::DuplicateVariable, "Variable \"" + std::string(cur.String) + "\" duplicated!" });
+                for (Variable& var : variables)
+                    if(var.Name == next.String)
+                        return Error(CompilerError{ CompilerErrorCode::DuplicateVariable, "Variable \"" + std::string(cur.String) + "\" duplicated!" });
+
+                //Count variables to determine new variables relative address
+                u32 variableCount = 0;
+                for (Variable& var : variables)
+                    if (!var.Constant)
+                        variableCount++;
 
                 //Add to variables list
-                VariableData var;
-                var.Address = variableMap.size() * sizeof(VmValue);
+                Variable var;
+                var.Name = next.String;
+                var.Address = variableCount * sizeof(VmValue);
                 var.InitialValue = String::ToShort(next2.String);
-                variableMap[next.String] = var;
+                var.Constant = false;
+                variables.push_back(var);
+                curTokenIndex += 4;
+                continue; //Doesn't generate an instruction
+            }
+            break;
+
+        case Token::Constant:
+            if (next.Type == Token::VarName && next2.Type == Token::Value && next3.Type == Token::Newline)
+            {
+                //Don't allow duplicate constants
+                for (Variable& var : variables)
+                    if (var.Name == next.String)
+                        return Error(CompilerError{ CompilerErrorCode::DuplicateVariable, "Variable \"" + std::string(cur.String) + "\" duplicated!" });
+
+                //Add to variables list
+                Variable var;
+                var.Name = next.String;
+                var.Address = -1; //Constants are compile time only
+                var.InitialValue = String::ToShort(next2.String);
+                var.Constant = true;
+                variables.push_back(var);
                 curTokenIndex += 4;
                 continue; //Doesn't generate an instruction
             }
@@ -226,11 +276,12 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
             if (next.Type == Token::Newline)
             {
                 //Don't allow duplicate labels
-                if (labels.find(cur.String) != labels.end()) //TODO: Add line number to errors to make them easier to locate
-                    return Error(CompilerError{ CompilerErrorCode::DuplicateLabel, "Label \"" + std::string(cur.String) + "\" duplicated!" });
+                for (Label& label : labels)
+                    if (label.Name == next.String)
+                        return Error(CompilerError{ CompilerErrorCode::DuplicateVariable, "Variable \"" + std::string(cur.String) + "\" duplicated!" });
 
                 //Map label name to its address
-                labels[cur.String] = instructions.size() * sizeof(Instruction);
+                labels.push_back(Label{ cur.String, instructions.size() * sizeof(Instruction) });
                 curTokenIndex += 2;
                 continue; //Doesn't generate an instruction
             }
@@ -265,34 +316,21 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
         Labels and variables are replaced with their addresses. Done after parsing since their addresses aren't known until all tokens are parsed.
     */
     //Patch label addresses
-    for (std::tuple<u32, std::string_view>& instruction : jumpPatchIndices)
-    {
-        u32 instructionIndex = std::get<0>(instruction);
-        std::string_view label = std::get<1>(instruction);
+    for (Patch& patch : labelPatches)
+        for (Label& label : labels)
+            if (label.Name == patch.Name)
+                instructions[patch.Index].OpAddress.Address = label.Address;
 
-        //Get label address
-        auto search = labels.find(label);
-        if (search == labels.end())
-            continue;
-
-        //Patch label address
-        instructions[instructionIndex].OpAddress.Address = search->second;
-    }
-    
-    //Patch variable addresses
-    for (std::tuple<u32, std::string_view>& instruction : varPatchIndices)
-    {
-        u32 instructionIndex = std::get<0>(instruction);
-        std::string_view variable = std::get<1>(instruction);
-
-        //Get variable address
-        auto search = variableMap.find(variable);
-        if (search == variableMap.end())
-            continue;
-
-        //Patch variable address
-        instructions[instructionIndex].OpRegisterValue.Value = (instructions.size() * sizeof(Instruction)) + search->second.Address;
-    }
+    //Patch variables and constants
+    for (Patch& patch : variablePatches)
+        for (Variable& variable : variables)
+            if (variable.Name == patch.Name)
+            {
+                if (variable.Constant) //Patch constant value
+                    instructions[patch.Index].OpRegisterValue.Value = variable.InitialValue;
+                else //Patch variable address
+                    instructions[patch.Index].OpRegisterValue.Value = (instructions.size() * sizeof(Instruction)) + variable.Address;
+            }
 
 
     /*
@@ -305,7 +343,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
     */
     //Calculate size of each data block
     u32 instructionsSizeBytes = instructions.size() * sizeof(instructions);
-    u32 variablesSizeBytes = variableMap.size() * sizeof(VmValue);
+    u32 variablesSizeBytes = variables.size() * sizeof(VmValue);
     u32 programSizeBytes = sizeof(ProgramHeader) + instructionsSizeBytes + variablesSizeBytes;
 
     //Write header
@@ -315,16 +353,18 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
     header.InstructionsSize = instructions.size() * sizeof(instructions);
     header.VariablesSize = variablesSizeBytes;
 
-    //Write variables set to their initial values
-    std::vector<VmValue> variables = {};
-    for (auto& kv : variableMap)
+    //Write variables to vector set to their initial values
+    std::vector<VmValue> finalVariables = {};
+    for (Variable& variable : variables)
     {
-        VariableData& varData = kv.second;
-        variables.push_back(varData.InitialValue);
+        if (variable.Constant)
+            continue; //Constants are discarded after step 2
+
+        finalVariables.push_back(variable.InitialValue);
     }
 
     //Construct and return vm program instance
-    VmProgram program(std::move(header), std::move(instructions), std::move(variables));
+    VmProgram program(std::move(header), std::move(instructions), std::move(finalVariables));
     return Success(program);
 }
 

@@ -2,34 +2,30 @@
 ;;; Test0.sunyat
 ;;; Tests out various instructions, labels, variables, and the stack
 
-!label0
-sub r0 88
-jmp !label1
-
-!label1
-add r4 67
-add r5 100
-store a r5
-load r6 a
-
-store x_1234 r0
-load r7 x_1234
-
-load r1 _my_var10
-
+; Basic variable and stack test
+load r0 a
 push r0
-pop r3
+pop r1
 
-var a 2 ; Defining these at the end to ensure variable definition order doesn't matter. Not recommended for clean code.
+; Testing reading/writing by memory address using constant. This is how ports work.
+mov r2 _my_var10_address
+load r3 _my_var10_address
+const one 1
+add r3 one
+store _my_var10_address r3
+
+; Defining these at the end to ensure variable definition order doesn't matter. Not recommended for clean code.
+var a 2
 var x_1234 -99
 var _my_var10 15000
+const _my_var10_address 32
 
 ;Expected result:
-;    r0: -88
-;    r1: 15000
-;    r2: 10
-;    r3: -88
-;    r4: 67
-;    r5: 100
-;    r6: 100
-;    r7: -88
+;    r0: 2
+;    r1: 2
+;    r2: 32
+;    r3: 15000 initially, increases by 1 each loop
+;    r4: 0
+;    r5: 0
+;    r6: 0
+;    r7: 0

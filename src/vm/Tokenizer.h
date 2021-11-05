@@ -59,6 +59,7 @@ enum class Token
     VarName,
     Label,
     Value,
+    Constant,
     Newline,
     None //Used by the compiler when it does token lookahead and goes out of bounds
 };

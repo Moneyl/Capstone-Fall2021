@@ -215,7 +215,7 @@ void Gui::DrawStack()
         ImGui::TableHeadersRow();
 
         //Fill table
-        for (u32 i = VM::MEMORY_SIZE; i > robot.Vm->SP; i -= sizeof(VmValue))
+        for (u32 i = VM::MEMORY_SIZE - sizeof(VmValue); i > robot.Vm->SP; i -= sizeof(VmValue))
         {
             ImGui::TableNextRow();
 
@@ -411,8 +411,8 @@ void Gui::DrawRobotList()
                 _robotIndex = i;
             }
         }
-        ImGui::EndChild();
     }
+    ImGui::EndChild();
 
     ImGui::End();
 }
