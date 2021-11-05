@@ -37,9 +37,14 @@ Renderer::Renderer(SDL_Window* window, SDL_Surface* surface, SDL_Renderer* rende
 
 void Renderer::NewFrame()
 {
+    //Reset per frame data
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame(_window);
     ImGui::NewFrame();
+
+    //Clear screen by setting all pixels to black
+    SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
+    SDL_RenderClear(_renderer);
 
     //Clear texture data after a few frames to free up memory. Not done in debug builds since it causes an assert in dear imgui to fail.
     //This reduces RAM usage by ~40MB
@@ -53,35 +58,12 @@ void Renderer::NewFrame()
 
 void Renderer::Update(f32 deltaTime)
 {
-    //Clear screen by setting all pixels to black
-    SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 255);
-    SDL_RenderClear(_renderer);
-
-    //Draw things
-    //Blue rectangle
-    SDL_SetRenderDrawColor(_renderer, 0, 0, 255, 255);
-    SDL_Rect rect = { _windowWidth * 0.4f, _windowHeight * 0.4f, _windowWidth * 0.2f, _windowHeight * 0.3f };
-    SDL_RenderFillRect(_renderer, &rect);
-
-    //Purple
-    SDL_SetRenderDrawColor(_renderer, 200, 0, 255, 255);
-    SDL_Rect rect2 = { _windowWidth * 0.7f, _windowHeight * 0.7f, _windowWidth * 0.2f, _windowHeight * 0.7f };
-    SDL_RenderFillRect(_renderer, &rect2);
-
-    //Green line
-    SDL_SetRenderDrawColor(_renderer, 0, 255, 0, 255);
-    SDL_RenderDrawLine(_renderer, _windowWidth * 0.3f, _windowHeight * 0.3f, _windowWidth * 0.3f, _windowHeight * 0.8f);
-
-    //Red line
-    SDL_SetRenderDrawColor(_renderer, 255, 255, 0, 255);
-    SDL_RenderDrawLine(_renderer, _windowWidth * 0.3f, _windowHeight * 0.3f, _windowWidth * 0.7f, _windowHeight * 0.3f);
-
+    //Render gui
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     //Render frame
     SDL_RenderPresent(_renderer);
-
     ImGui::EndFrame();
 }
 
@@ -96,6 +78,26 @@ void Renderer::HandleWindowResize(i32 newWidth, i32 newHeight)
 {
     _windowWidth = newWidth;
     _windowHeight = newHeight;
+}
+
+void Renderer::DrawLine(const Vec2<i32>& begin, const Vec2<i32> end, const Vec4<u8>& color)
+{
+    SDL_SetRenderDrawColor(_renderer, color.x, color.y, color.z, color.w);
+    SDL_RenderDrawLine(_renderer, begin.x, begin.y, end.x, end.y);
+}
+
+void Renderer::DrawRectangle(const Vec2<i32>& min, const Vec2<i32>& size, const Vec4<u8>& color)
+{
+    SDL_SetRenderDrawColor(_renderer, color.x, color.y, color.z, color.w);
+    SDL_Rect rect = { min.x, min.y, size.x, size.y };
+    SDL_RenderDrawRect(_renderer, &rect);
+}
+
+void Renderer::DrawRectangleFilled(const Vec2<i32>& min, const Vec2<i32>& size, const Vec4<u8>& color)
+{
+    SDL_SetRenderDrawColor(_renderer, color.x, color.y, color.z, color.w);
+    SDL_Rect rect = { min.x, min.y, size.x, size.y };
+    SDL_RenderFillRect(_renderer, &rect);
 }
 
 void Renderer::InitImGui()

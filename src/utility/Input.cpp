@@ -24,7 +24,7 @@ void Input::HandleEvent(SDL_Event* event)
     }
 }
 
-void Input::EndFrame()
+void Input::NewFrame()
 {
     _mouseButtonPressed = false;
     _mouseMoved = false;

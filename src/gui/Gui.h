@@ -28,7 +28,9 @@ private:
     void DrawVmState();
     //List of robots. When selected the other UI panels will display that robots state.
     void DrawRobotList();
+    //Draw message telling the user to pick a robot to see it's info. Used by robot dependent guis when none is selected.
+    void DrawNoRobotWarning();
 
     Application* _app = nullptr;
-    VM* _vm = nullptr;
+    i32 _robotIndex = -1; //Robot selected from the robot list
 };

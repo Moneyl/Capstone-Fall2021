@@ -12,7 +12,8 @@ bool RobotListVisible = true;
 
 Gui::Gui(Application* app) : _app(app)
 {
-
+    if (app->Robots.size() > 0)
+        _robotIndex = 0;
 }
 
 void Gui::Update(f32 deltaTime)
@@ -130,12 +131,20 @@ void Gui::DrawVariables()
         ImGui::End();
         return;
     }
-    VM* vm = _app->Vm;
 
     _app->Fonts.Large.Push();
     ImGui::Text("Variables");
     _app->Fonts.Large.Pop();
     ImGui::Separator();
+
+    //Don't draw gui if no robot is selected
+    if (_robotIndex == -1 || _robotIndex >= _app->Robots.size())
+    {
+        DrawNoRobotWarning();
+        ImGui::End();
+        return;
+    }
+    Robot& robot = _app->Robots[_robotIndex];
 
     //Variables table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
@@ -151,14 +160,14 @@ void Gui::DrawVariables()
         ImGui::TableHeadersRow();
 
         //Fill table
-        const Span<VmValue> variables = vm->Variables();
+        const Span<VmValue> variables = robot.Vm->Variables();
         for (const VmValue& variable : variables)
         {
             ImGui::TableNextRow();
 
             //Column 0
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text(std::to_string((u8*)&variable - vm->Memory));
+            ImGui::Text(std::to_string((u8*)&variable - robot.Vm->Memory));
 
             //Column 1
             ImGui::TableSetColumnIndex(1);
@@ -178,12 +187,20 @@ void Gui::DrawStack()
         ImGui::End();
         return;
     }
-    VM* vm = _app->Vm;
 
     _app->Fonts.Large.Push();
     ImGui::Text("Stack");
     _app->Fonts.Large.Pop();
     ImGui::Separator();
+
+    //Don't draw gui if no robot is selected
+    if (_robotIndex == -1 || _robotIndex >= _app->Robots.size())
+    {
+        DrawNoRobotWarning();
+        ImGui::End();
+        return;
+    }
+    Robot& robot = _app->Robots[_robotIndex];
 
     //Stack table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
@@ -198,7 +215,7 @@ void Gui::DrawStack()
         ImGui::TableHeadersRow();
 
         //Fill table
-        for (u32 i = VM::MEMORY_SIZE; i > vm->SP; i -= sizeof(VmValue))
+        for (u32 i = VM::MEMORY_SIZE; i > robot.Vm->SP; i -= sizeof(VmValue))
         {
             ImGui::TableNextRow();
 
@@ -208,7 +225,7 @@ void Gui::DrawStack()
 
             //Column 1
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(std::to_string(*(VmValue*)&vm->Memory[i]));
+            ImGui::Text(std::to_string(*(VmValue*)&robot.Vm->Memory[i]));
         }
 
         ImGui::EndTable();
@@ -224,12 +241,20 @@ void Gui::DrawDisassembler()
         ImGui::End();
         return;
     }
-    VM* vm = _app->Vm;
 
     _app->Fonts.Large.Push();
     ImGui::Text("Disassembler");
     _app->Fonts.Large.Pop();
     ImGui::Separator();
+
+    //Don't draw gui if no robot is selected
+    if (_robotIndex == -1 || _robotIndex >= _app->Robots.size())
+    {
+        DrawNoRobotWarning();
+        ImGui::End();
+        return;
+    }
+    Robot& robot = _app->Robots[_robotIndex];
 
     //Options
     static bool useRealOpcodeNames = false;
@@ -260,12 +285,12 @@ void Gui::DrawDisassembler()
         ImGui::TableHeadersRow();
 
         //Fill table
-        const Span<Instruction> instructions = _app->Vm->Instructions();
+        const Span<Instruction> instructions = robot.Vm->Instructions();
         for (u32 i = 0; i < instructions.size(); i++)
         {
             ImGui::TableNextRow();
             const Instruction& instruction = instructions[i];
-            u32 address = (u8*)&instruction - _app->Vm->Memory; //Instruction address in VM memory
+            u32 address = (u8*)&instruction - robot.Vm->Memory; //Instruction address in VM memory
 
             //Column 0
             ImGui::TableSetColumnIndex(0);
@@ -277,7 +302,7 @@ void Gui::DrawDisassembler()
 
             //Column 2
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text(std::to_string(_app->Vm->InstructionTimes.find((Opcode)instruction.Op.Opcode)->second).c_str());
+            ImGui::Text(std::to_string(robot.Vm->InstructionTimes.find((Opcode)instruction.Op.Opcode)->second).c_str());
         }
 
         ImGui::EndTable();
@@ -293,20 +318,28 @@ void Gui::DrawVmState()
         ImGui::End();
         return;
     }
-    VM* vm = _app->Vm;
 
     _app->Fonts.Large.Push();
     ImGui::Text("VM state");
     _app->Fonts.Large.Pop();
     ImGui::Separator();
 
+    //Don't draw gui if no robot is selected
+    if (_robotIndex == -1 || _robotIndex >= _app->Robots.size())
+    {
+        DrawNoRobotWarning();
+        ImGui::End();
+        return;
+    }
+    Robot& robot = _app->Robots[_robotIndex];
+
     const u32 min = 0;
     const u32 max = 10000;
-    ImGui::SliderScalar("Cycles / frame", ImGuiDataType_U32, &_app->VmCyclesPerFrame, &min, &max);
-    ImGui::LabelAndValue("Memory size:", std::to_string(vm->MEMORY_SIZE) + " bytes");
-    ImGui::LabelAndValue("Program size:", std::to_string(vm->InstructionsSize()) + " bytes");
-    ImGui::LabelAndValue("Variables size:", std::to_string(vm->VariablesSize()) + " bytes");
-    ImGui::LabelAndValue("Stack size:", std::to_string(vm->StackSize()) + "/" + std::to_string(vm->MaxStackSize()) + " bytes");
+    ImGui::SliderScalar("Cycles / frame", ImGuiDataType_U32, &_app->CyclesPerFrame, &min, &max);
+    ImGui::LabelAndValue("Memory size:", std::to_string(robot.Vm->MEMORY_SIZE) + " bytes");
+    ImGui::LabelAndValue("Program size:", std::to_string(robot.Vm->InstructionsSize()) + " bytes");
+    ImGui::LabelAndValue("Variables size:", std::to_string(robot.Vm->VariablesSize()) + " bytes");
+    ImGui::LabelAndValue("Stack size:", std::to_string(robot.Vm->StackSize()) + "/" + std::to_string(robot.Vm->MaxStackSize()) + " bytes");
 
     //Draw registers in table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
@@ -331,7 +364,7 @@ void Gui::DrawVmState()
 
             //Column 1
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(std::to_string(vm->Registers[i]));
+            ImGui::Text(std::to_string(robot.Vm->Registers[i]));
         }
 
         //Special registers
@@ -340,14 +373,14 @@ void Gui::DrawVmState()
         ImGui::TableSetColumnIndex(0);
         ImGui::Text("PC");
         ImGui::TableSetColumnIndex(1);
-        ImGui::Text(std::to_string(vm->PC));
+        ImGui::Text(std::to_string(robot.Vm->PC));
 
         //SP
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         ImGui::Text("SP");
         ImGui::TableSetColumnIndex(1);
-        ImGui::Text(std::to_string(vm->SP));
+        ImGui::Text(std::to_string(robot.Vm->SP));
 
         ImGui::EndTable();
     }
@@ -362,13 +395,29 @@ void Gui::DrawRobotList()
         ImGui::End();
         return;
     }
-    VM* vm = _app->Vm;
 
     _app->Fonts.Large.Push();
     ImGui::Text("Robots");
     _app->Fonts.Large.Pop();
     ImGui::Separator();
 
+    if (ImGui::BeginChild("RobotsList", { 0, 0 }, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+    {
+        for (u32 i = 0; i < _app->Robots.size(); i++)
+        {
+            Robot& robot = _app->Robots[i];
+            if (ImGui::Selectable(("Robot " + std::to_string(i)).c_str())) //Todo: Show program name here
+            {
+                _robotIndex = i;
+            }
+        }
+        ImGui::EndChild();
+    }
 
     ImGui::End();
+}
+
+void Gui::DrawNoRobotWarning()
+{
+    ImGui::TextWrapped(ICON_FA_EXCLAMATION_CIRCLE " Select a robot from the robots list. You can re-open closed windows from 'View' on the main menu bar.");
 }

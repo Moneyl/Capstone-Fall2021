@@ -1,7 +1,11 @@
 #pragma once
 #include "Typedefs.h"
 #include "gui/Fonts.h"
+#include "math/Vec2.h"
+#include "math/Vec4.h"
 #include <SDL.h>
+
+const Vec4<u8> ColorWhite = { 255, 255, 255, 255 };
 
 enum RenderBackend
 {
@@ -25,6 +29,11 @@ public:
 
     SDL_RendererInfo Info;
     RenderBackend BackendType = Unknown;
+
+    //Primitive drawing functions
+    void DrawLine(const Vec2<i32>& begin, const Vec2<i32> end, const Vec4<u8>& color = ColorWhite);
+    void DrawRectangle(const Vec2<i32>& min, const Vec2<i32>& size, const Vec4<u8>& color = ColorWhite);
+    void DrawRectangleFilled(const Vec2<i32>& min, const Vec2<i32>& size, const Vec4<u8>& color = ColorWhite);
 
 private:
     void InitImGui();

@@ -10,6 +10,8 @@
 #include "gui/Fonts.h"
 #include "gui/Gui.h"
 #include "BuildConfig.h"
+#include "robots/Robot.h"
+#include <vector>
 
 //Root class of app. Owns data that is alive for the entire app runtime.
 class Application
@@ -21,8 +23,9 @@ public:
     Renderer Renderer;
     Fonts Fonts;
     Gui Gui;
-    VM* Vm;
-    u32 VmCyclesPerFrame = 100; //# VM cycles to run each app frame
+    std::vector<Robot> Robots = {};
+    u32 CyclesPerFrame = 100; //# of VM cycles to run each app frame
+    Vec2<i32> ArenaSize = { 1000, 1000 };
 
 private:
     bool Init();

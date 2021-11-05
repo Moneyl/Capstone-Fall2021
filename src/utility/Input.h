@@ -10,7 +10,7 @@ public:
 	//Called by the main loop when it polls events
     void HandleEvent(SDL_Event* event);
 	//Reset per-frame state
-	void EndFrame();
+	void NewFrame();
 
 	//Returns true if the key is down
 	bool KeyDown(SDL_KeyCode keycode);
