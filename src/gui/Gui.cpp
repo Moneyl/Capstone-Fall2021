@@ -334,7 +334,7 @@ void Gui::DrawVmState()
     Robot& robot = _app->Robots[_robotIndex];
 
     const u32 min = 0;
-    const u32 max = 10000;
+    const u32 max = 1000;
     ImGui::SliderScalar("Cycles / frame", ImGuiDataType_U32, &_app->CyclesPerFrame, &min, &max);
     ImGui::LabelAndValue("Memory size:", std::to_string(robot.Vm->MEMORY_SIZE) + " bytes");
     ImGui::LabelAndValue("Program size:", std::to_string(robot.Vm->InstructionsSize()) + " bytes");

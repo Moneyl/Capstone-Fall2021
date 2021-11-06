@@ -4,6 +4,7 @@
 #include "utility/Result.h"
 #include "utility/Span.h"
 #include "Instruction.h"
+#include "VM.h"
 #include <unordered_map>
 
 struct VMError;
@@ -13,6 +14,7 @@ class VM
 {
 public:
     //Constants
+    static const u32 RESERVED_BYTES = 256; //Bytes at the start of VM memory reserved for ports and other VM data
     static const u32 MEMORY_SIZE = 32766; //Note: Less than VmValue max so SP can be set out of bounds to signify an empty stack
     static const u32 NUM_REGISTERS = 8;
     static_assert(MEMORY_SIZE <= std::numeric_limits<Register>::max(), "VM::MEMORY_SIZE too big! Must be fit inside VM registers. Either make memory smaller or make registers larger (see VM.h)");
@@ -30,16 +32,16 @@ public:
     u32 InstructionsSize() const { return _instructionsSizeBytes; } //The number of bytes that instructions take up in memory
     u32 VariablesSize() const { return _variablesSizeBytes; } //The number of bytes that variables take up in memory
     u32 StackSize() const { return VM::MEMORY_SIZE - SP; } //The number of bytes that the stack is using currently
-    u32 MaxStackSize() const { return VM::MEMORY_SIZE - InstructionsSize() - VariablesSize(); } //Max bytes the stack can use
+    u32 MaxStackSize() const { return VM::MEMORY_SIZE - VM::RESERVED_BYTES - InstructionsSize() - VariablesSize(); } //Max bytes the stack can use
 
     //Get a non-owning view of the program instructions
-    const Span<Instruction> Instructions() { return Span<Instruction>((Instruction*)&Memory[0], InstructionsSize() / sizeof(Instruction)); };
+    const Span<Instruction> Instructions() { return Span<Instruction>((Instruction*)&Memory[VM::RESERVED_BYTES], InstructionsSize() / sizeof(Instruction)); };
     //Get a non-owning view of the programs variables
-    const Span<VmValue> Variables() { return Span<VmValue>((VmValue*)&Memory[InstructionsSize()], VariablesSize() / sizeof(VmValue)); };
+    const Span<VmValue> Variables() { return Span<VmValue>((VmValue*)&Memory[VM::RESERVED_BYTES + InstructionsSize()], VariablesSize() / sizeof(VmValue)); };
 
     u8 Memory[VM::MEMORY_SIZE] = { 0 };
     Register Registers[VM::NUM_REGISTERS] = { 0 };
-    Register PC = 0; //Memory address of the next instruction to be executed
+    Register PC = VM::RESERVED_BYTES; //Memory address of the next instruction to be executed
     Register SP = VM::MEMORY_SIZE; //Memory address of the top of the stack. Initially just past the end of Memory. Grows down from the top of Memory.
 
     //Set with the result of arithmetic instructions and with the difference between registers when cmp is executed. Used by conditional jump instructions like jle and jgr.

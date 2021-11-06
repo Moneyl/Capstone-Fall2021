@@ -1,6 +1,8 @@
 #include "Compiler.h"
 #include "utility/File.h"
 #include "utility/String.h"
+#include "Constants.h"
+#include "VM.h"
 #include <stdexcept>
 #include <string>
 
@@ -45,6 +47,18 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
     //Peek ahead in the token list. Returns Token::NONE if curTokenIndex + distance is out of bounds
     auto PeekToken = [&](u32 distance) -> TokenData { return (curTokenIndex + distance < tokens.size()) ? tokens[curTokenIndex + distance] : TokenData{ Token::None, "" }; };
+
+    //Add built in constants to list
+    for (auto& kv : BuiltInConstants)
+    {
+        std::string_view name = kv.first;
+        VmValue address = kv.second;
+        Variable& var = variables.emplace_back();
+        var.Name = name;
+        var.Address = 0;
+        var.InitialValue = address;
+        var.Constant = true;
+    }
 
     /*
         Step 1, Parse tokens:
@@ -243,7 +257,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 //Add to variables list
                 Variable var;
                 var.Name = next.String;
-                var.Address = variableCount * sizeof(VmValue);
+                var.Address = variableCount * sizeof(VmValue); //Address relative to start of variables block
                 var.InitialValue = String::ToShort(next2.String);
                 var.Constant = false;
                 variables.push_back(var);
@@ -281,7 +295,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                         return Error(CompilerError{ CompilerErrorCode::DuplicateVariable, "Variable \"" + std::string(cur.String) + "\" duplicated!" });
 
                 //Map label name to its address
-                labels.push_back(Label{ cur.String, instructions.size() * sizeof(Instruction) });
+                labels.push_back(Label{ cur.String, VM::RESERVED_BYTES + instructions.size() * sizeof(Instruction) });
                 curTokenIndex += 2;
                 continue; //Doesn't generate an instruction
             }
@@ -321,15 +335,24 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
             if (label.Name == patch.Name)
                 instructions[patch.Index].OpAddress.Address = label.Address;
 
+    //Offset of variable block in VM memory
+    VmValue variableBlockOffset = VM::RESERVED_BYTES + (instructions.size() * sizeof(Instruction));
+
     //Patch variables and constants
     for (Patch& patch : variablePatches)
         for (Variable& variable : variables)
-            if (variable.Name == patch.Name)
+            if (variable.Name.compare(patch.Name) == 0) //Using ::compare to compare string_views by character
             {
                 if (variable.Constant) //Patch constant value
                     instructions[patch.Index].OpRegisterValue.Value = variable.InitialValue;
                 else //Patch variable address
-                    instructions[patch.Index].OpRegisterValue.Value = (instructions.size() * sizeof(Instruction)) + variable.Address;
+                    instructions[patch.Index].OpRegisterValue.Value = variableBlockOffset + variable.Address;
+            }
+            else
+            {
+                std::string_view a = variable.Name;
+                std::string_view b = patch.Name;
+                auto c = 2;
             }
 
 
@@ -341,18 +364,6 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
             - Variables: Space for variables set to their default values. Done at compile time so the stack, which grows
                          from the end of VM memory down, is only constrained in size by the number of variables.
     */
-    //Calculate size of each data block
-    u32 instructionsSizeBytes = instructions.size() * sizeof(instructions);
-    u32 variablesSizeBytes = variables.size() * sizeof(VmValue);
-    u32 programSizeBytes = sizeof(ProgramHeader) + instructionsSizeBytes + variablesSizeBytes;
-
-    //Write header
-    ProgramHeader header;
-    header.Signature = VmProgram::EXPECTED_SIGNATURE; //ASCII string "ATRB"
-    header.ProgramSize = programSizeBytes;
-    header.InstructionsSize = instructions.size() * sizeof(instructions);
-    header.VariablesSize = variablesSizeBytes;
-
     //Write variables to vector set to their initial values
     std::vector<VmValue> finalVariables = {};
     for (Variable& variable : variables)
@@ -362,6 +373,18 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
         finalVariables.push_back(variable.InitialValue);
     }
+
+    //Calculate size of each data block
+    u32 instructionsSizeBytes = instructions.size() * sizeof(Instruction);
+    u32 variablesSizeBytes = finalVariables.size() * sizeof(VmValue);
+    u32 programSizeBytes = sizeof(ProgramHeader) + instructionsSizeBytes + variablesSizeBytes;
+
+    //Write header
+    ProgramHeader header;
+    header.Signature = VmProgram::EXPECTED_SIGNATURE; //ASCII string "ATRB"
+    header.ProgramSize = programSizeBytes;
+    header.InstructionsSize = instructions.size() * sizeof(Instruction);
+    header.VariablesSize = variablesSizeBytes;
 
     //Construct and return vm program instance
     VmProgram program(std::move(header), std::move(instructions), std::move(finalVariables));

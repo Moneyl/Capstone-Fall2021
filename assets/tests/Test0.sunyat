@@ -8,17 +8,16 @@ push r0
 pop r1
 
 ; Testing reading/writing by memory address using constant. This is how ports work.
-mov r2 _my_var10_address
-load r3 _my_var10_address
 const one 1
-add r3 one
-store _my_var10_address r3
+add r2 one
+
+mov r4 P_HEAT
+mov r5 P_SPEDOMETER
 
 ; Defining these at the end to ensure variable definition order doesn't matter. Not recommended for clean code.
 var a 2
 var x_1234 -99
 var _my_var10 15000
-const _my_var10_address 32
 
 ;Expected result:
 ;    r0: 2

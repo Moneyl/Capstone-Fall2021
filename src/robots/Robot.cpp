@@ -16,5 +16,16 @@ void Robot::Update(f32 deltaTime, u32 cyclesPerFrame)
             Error = true;
             return;
         }
+
+        //Update robot hardware
+        const VmValue& spedometer = GetPort(Port::Spedometer);
+        Speed = spedometer;
+        //Todo: Change direction depending on robot angle
+        Position.y += Speed;
     }
+}
+
+VmValue& Robot::GetPort(Port port)
+{
+    return *(VmValue*)(&Vm->Memory[(VmValue)port]);
 }

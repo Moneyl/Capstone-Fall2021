@@ -12,7 +12,7 @@
 {return Error(VMError{ VMErrorCode::OutOfBoundsMemoryAccess, "Out of bounds memory access by instruction at address " + std::to_string(lastPC) + ". Instruction.Address = " + std::to_string(address) });}
 
 //Prevent stack from growing into variable/program memory
-#define STACK_OVERFLOW_CHECK() if (SP <= InstructionsSize() + VariablesSize())\
+#define STACK_OVERFLOW_CHECK() if (SP <= VM::RESERVED_BYTES + InstructionsSize() + VariablesSize())\
 {return Error(VMError{ VMErrorCode::StackOverflow, "Stack underflow by instruction at address " + std::to_string(lastPC) + ". SP = " + std::to_string(SP) });}
 
 //Prevent stack from shrinking past the end of VM memory
@@ -25,12 +25,12 @@ Result<void, VMError> VM::LoadProgram(const VmProgram& program)
     memset(Memory, 0, VM::MEMORY_SIZE);
 
     //Copy instructions into memory
-    _instructionsSizeBytes = program.Instructions.size() * sizeof(Instruction);
-    memcpy(Memory, program.Instructions.data(), _instructionsSizeBytes);
+    _instructionsSizeBytes = program.Header.InstructionsSize;
+    memcpy(Memory + VM::RESERVED_BYTES, program.Instructions.data(), program.Header.InstructionsSize);
 
     //Copy variables into memory
-    _variablesSizeBytes = program.Variables.size() * sizeof(VmValue);
-    memcpy(Memory + _instructionsSizeBytes, program.Variables.data(), _variablesSizeBytes);
+    _variablesSizeBytes = program.Header.VariablesSize;
+    memcpy(Memory + VM::RESERVED_BYTES + _instructionsSizeBytes, program.Variables.data(), program.Header.VariablesSize);
 
     //Reset flags and registers
     FlagSign = false;
@@ -85,8 +85,8 @@ Result<void, VMError> VM::Cycle()
     else //Fetch next instruction
     {
         //Reset PC to first instruction if it's out of bounds
-        if (PC >= InstructionsSize())
-            PC = 0;
+        if (PC < VM::RESERVED_BYTES || PC >= VM::RESERVED_BYTES + InstructionsSize())
+            PC = VM::RESERVED_BYTES;
 
         //Fetch next instruction
         _instruction = (Instruction*)(&Memory[PC]);
@@ -289,7 +289,7 @@ void VM::Store(VmValue address, VmValue value)
 
 void VM::Push(VmValue value)
 {
-    if (SP <= InstructionsSize() + VariablesSize()) //Prevent stack from growing into variable/program memory
+    if (SP <= VM::RESERVED_BYTES + InstructionsSize() + VariablesSize()) //Prevent stack from growing into variable/program memory
         throw std::runtime_error("Stack overflow caused by VM::Push() call. SP = " + std::to_string(PC));
 
     //Grow stack down into memory and push a value onto it

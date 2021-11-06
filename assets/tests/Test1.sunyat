@@ -1,13 +1,34 @@
 
 ;;; Test1.sunyat
-;;; Simple infinite loop
+;;; Simple infinite loop. Switches between forward and backwards movement periodically
 
 ; Increment r0 forever
 !main
 add r0 1
-cmp r0 1000
-jls !main
 
-; if r0 >= 1000, r1++ and r0 = 0
+; if r0 > 15 then move forward,
+cmp r0 15
+jgr !forward
+; if r0 > 0 && <= 15 then move backward
+cmp r0 15
+jls !backward
+
+; if r0 >= 30, r1++ and r0 = 0
+!reset_check
+cmp r0 30
+jls !main
 add r1 1
 mov r0 0
+jmp !main
+
+; Move forward
+!forward
+mov r2 1
+store P_SPEDOMETER r2
+jmp !reset_check
+
+; Move backwards
+!backward
+mov r2 -1
+store P_SPEDOMETER r2
+jmp !reset_check
