@@ -24,7 +24,7 @@ public:
     Fonts Fonts;
     Gui Gui;
     std::vector<Robot> Robots = {};
-    u32 CyclesPerFrame = 20; //# of VM cycles to run each app frame
+    u32 CyclesPerSecond = 20; //# of VM cycles to run each second
     Vec2<i32> ArenaSize = { 1000, 1000 };
 
 private:
@@ -47,5 +47,6 @@ private:
     const u32 _targetFramerate = 60;
     const f32 targetDeltaTime = 1.0f / (f32)_targetFramerate;
     f32 _deltaTime = 0.0f;
+    f32 _cycleAccumulator = 0.0f; //Accumulates time to execute VM cycles
     Timer _frameTimer;
 };

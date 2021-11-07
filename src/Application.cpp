@@ -75,9 +75,16 @@ bool Application::MainLoop()
         while (SDL_PollEvent(&event))
             HandleEvent(&event);
 
+        //Calculate how many cycles to execute this frame
+        //Only whole cycles are executed. If there's only enough time for part of a cycle it'll be accumulated for next frame
+        _cycleAccumulator += _deltaTime; //Accumulate cycle time
+        const f32 timeBetweenCycles = 1.0f / (f32)CyclesPerSecond;
+        const u32 cyclesToExecute = truncf(_cycleAccumulator / timeBetweenCycles);
+        _cycleAccumulator -= cyclesToExecute * timeBetweenCycles; //Remove time for executed cycles
+
         //Update robots
         for (Robot& robot : Robots)
-            robot.Update(_deltaTime, CyclesPerFrame);
+            robot.Update(_deltaTime, cyclesToExecute);
 
         //Update app logic
         Gui.Update(_deltaTime);
