@@ -14,6 +14,8 @@ namespace ImGui
     IMGUI_API void TextUnformatted(const std::string& text);
     IMGUI_API void TextUnformatted(std::string_view text);
 
+    //Add mouseover tooltip the previously drawn UI element
+    void TooltipOnPrevious(const std::string& tooltip, ImFont* font = nullptr);
     //Draws (?) with a mouseover tooltip. Useful to place next to other UI elements for explanation.
     void HelpMarker(const std::string& tooltip, ImFont* font = nullptr);
 

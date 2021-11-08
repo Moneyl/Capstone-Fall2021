@@ -47,11 +47,11 @@ bool Application::Init()
     //Create robots
     Vec2<i32> arenaCenter = ArenaSize / 2;
     Robot& robot = Robots.emplace_back();
-    robot.Vm->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test1.sunyat");
+    robot.LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
     robot.Position.x = arenaCenter.x + 400;
     robot.Position.y = arenaCenter.y + 50;
     Robot& robot2 = Robots.emplace_back();
-    robot2.Vm->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
+    robot2.LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test1.sunyat");
     robot2.Position.x = arenaCenter.x + 300;
     robot2.Position.y = arenaCenter.y + 0;
 
@@ -84,7 +84,13 @@ bool Application::MainLoop()
 
         //Update robots
         for (Robot& robot : Robots)
+        {
+            //Recompile source file if it was edited
+            if (RobotAutoReloadEnabled)
+                robot.TryReload();
+
             robot.Update(_deltaTime, cyclesToExecute);
+        }
 
         //Update app logic
         Gui.Update(_deltaTime);

@@ -25,6 +25,37 @@ void Robot::Update(f32 deltaTime, u32 cyclesPerFrame)
     }
 }
 
+void Robot::LoadProgramFromSource(std::string_view inFilePath)
+{
+    Vm->LoadProgramFromSource(inFilePath);
+    _sourceFileLastWriteTime = std::filesystem::last_write_time(inFilePath);
+    _sourceFilePath = inFilePath;
+}
+
+void Robot::TryReload()
+{
+    //Recompile program if source file changed
+    if (_sourceFileLastWriteTime != std::filesystem::last_write_time(_sourceFilePath))
+    {
+        _sourceFileLastWriteTime = std::filesystem::last_write_time(_sourceFilePath);
+        std::unique_ptr<VM> newVM = std::unique_ptr<VM>(new VM());
+        Result<void, VMError> result = newVM->LoadProgramFromSource(_sourceFilePath);
+        std::string sourceFileName = std::filesystem::path(_sourceFilePath).filename().string();
+
+        //In case of error, log it then keep using the already loaded program
+        if (result.Error())
+        {
+            VMError& error = result.ErrorData();
+            printf("Error reloading '%s'! Error code: %s Error message: %s\n", sourceFileName.c_str(), to_string(error.Code).c_str(), error.Message.c_str());
+            return;
+        }
+
+        //Successful reload
+        Vm = std::move(newVM);
+        printf("Recompiled robot '%s'\n", sourceFileName.c_str());
+    }
+}
+
 VmValue& Robot::GetPort(Port port)
 {
     return *(VmValue*)(&Vm->Memory[(VmValue)port]);

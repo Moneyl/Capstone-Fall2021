@@ -19,13 +19,17 @@ class Application
 public:
     bool Run();
     
+    //Global data
     Input Input;
     Renderer Renderer;
     Fonts Fonts;
     Gui Gui;
     std::vector<Robot> Robots = {};
-    u32 CyclesPerSecond = 20; //# of VM cycles to run each second
+
+    //App config
     Vec2<i32> ArenaSize = { 1000, 1000 };
+    u32 CyclesPerSecond = 20; //# of VM cycles to run each second
+    bool RobotAutoReloadEnabled = true; //Auto recompile robot program when source file is edited
 
 private:
     bool Init();

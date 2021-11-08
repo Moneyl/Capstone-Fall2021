@@ -22,9 +22,8 @@ namespace ImGui
         ImGui::TextUnformatted(text.data(), text.data() + text.length());
     }
 
-    void HelpMarker(const std::string& tooltip, ImFont* font)
+    void TooltipOnPrevious(const std::string& tooltip, ImFont* font)
     {
-        ImGui::TextDisabled("(?)");
         if (ImGui::IsItemHovered()) //Is previous UI element being mouse hovered?
         {
             if (!font)
@@ -38,6 +37,12 @@ namespace ImGui
             ImGui::EndTooltip();
             ImGui::PopFont();
         }
+    }
+
+    void HelpMarker(const std::string& tooltip, ImFont* font)
+    {
+        ImGui::TextDisabled("(?)");
+        ImGui::TooltipOnPrevious(tooltip, font);
     }
 
     void LabelAndValue(std::string_view label, std::string_view value)

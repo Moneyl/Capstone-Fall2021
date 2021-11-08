@@ -87,6 +87,13 @@ void Gui::DrawMainMenuBar()
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("Tools"))
+        {
+            ImGui::MenuItem(ICON_FA_SYNC_ALT " Auto reload robots", "", &_app->RobotAutoReloadEnabled);
+            ImGui::TooltipOnPrevious("Auto recompile robot programs when their source file is edited and saved. This also resets the VM (memory, registers, stack, variables, etc).");
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
     }
 }
@@ -406,7 +413,9 @@ void Gui::DrawRobotList()
         for (u32 i = 0; i < _app->Robots.size(); i++)
         {
             Robot& robot = _app->Robots[i];
-            if (ImGui::Selectable(("Robot " + std::to_string(i)).c_str())) //Todo: Show program name here
+            std::string label = "Robot " + std::to_string(i) + " - " + std::filesystem::path(robot.SourcePath()).filename().string();
+            bool selected = (i == _robotIndex);
+            if (ImGui::Selectable(label.c_str(), &selected))
             {
                 _robotIndex = i;
             }
