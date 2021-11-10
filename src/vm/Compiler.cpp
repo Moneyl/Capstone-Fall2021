@@ -348,12 +348,6 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 else //Patch variable address
                     instructions[patch.Index].OpRegisterValue.Value = variableBlockOffset + variable.Address;
             }
-            else
-            {
-                std::string_view a = variable.Name;
-                std::string_view b = patch.Name;
-                auto c = 2;
-            }
 
 
     /*
