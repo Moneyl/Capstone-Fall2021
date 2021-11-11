@@ -34,9 +34,9 @@ class Fonts
 public:
     void LoadFonts();
     
-    ImGuiFont Small = { 11.0f };
-    ImGuiFont Default = { 13.0f };
-    ImGuiFont Medium = { 16.0f };
-    ImGuiFont Large = { 24.0f };
-    ImGuiFont ExtraLarge = { 31.0f };
+    ImGuiFont Small = { 12.0f };
+    ImGuiFont Default = { 14.0f };
+    ImGuiFont Medium = { 18.0f };
+    ImGuiFont Large = { 26.0f };
+    ImGuiFont ExtraLarge = { 33.0f };
 };
