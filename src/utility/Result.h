@@ -31,11 +31,9 @@ public:
     Result(Success<ResultType> success) : _data(success.Data) {}
     Result(Error<ErrorType> error) : _data(error.Data) {}
 
-    //Get result state and data
-    bool Success() const { return std::holds_alternative<ResultType>(_data); }
-    bool Error() const { return std::holds_alternative<ErrorType>(_data); }
-    ResultType& SuccessData() { return std::get<ResultType>(_data); }
-    ErrorType& ErrorData() { return std::get<ErrorType>(_data); }
+    //Get result state and data. Can check for error/success with `if (result.Success())` since std::optional<T> can be treated as a bool.
+    std::optional<ResultType> Success() const { return std::holds_alternative<ResultType>(_data) ? std::get<ResultType>(_data) : std::optional<ResultType>{}; }
+    std::optional<ErrorType> Error() const { return std::holds_alternative<ErrorType>(_data) ? std::get<ErrorType>(_data) : std::optional<ErrorType>{}; }
 
 private:
     std::variant<ResultType, ErrorType> _data;
@@ -57,9 +55,8 @@ public:
     Result(Error<ErrorType> error) : _data(error.Data) {}
 
     //Get result state and data
-    bool Success() const { return !_data.has_value() }
-    bool Error() const { return _data.has_value(); }
-    ErrorType ErrorData() { return _data.value(); }
+    bool Success() const { return !_data.has_value(); }
+    std::optional<ErrorType> Error() const { return _data; }
 
 private:
     std::optional<ErrorType> _data;

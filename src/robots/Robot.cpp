@@ -11,7 +11,7 @@ void Robot::Update(f32 deltaTime, u32 cyclesPerFrame)
         Result<void, VMError> cycleResult = Vm->Cycle();
         if (cycleResult.Error())
         {
-            VMError& error = cycleResult.ErrorData();
+            VMError& error = cycleResult.Error().value();
             printf("Error in VM::Cycle()! Code: %s, Message: %s\n", to_string(error.Code).c_str(), error.Message.c_str());
             Error = true;
             return;
@@ -45,7 +45,7 @@ void Robot::TryReload()
         //In case of error, log it then keep using the already loaded program
         if (result.Error())
         {
-            VMError& error = result.ErrorData();
+            VMError& error = result.Error().value();
             printf("Error reloading '%s'! Error code: %s Error message: %s\n", sourceFileName.c_str(), to_string(error.Code).c_str(), error.Message.c_str());
             return;
         }

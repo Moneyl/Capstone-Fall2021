@@ -390,9 +390,9 @@ Result<VmProgram, CompilerError> Compiler::Compile(std::string_view source)
     //Tokenize source
     Result<std::vector<TokenData>, TokenizerError> tokenizeResult = Tokenizer::Tokenize(source);
     if (tokenizeResult.Error())
-        return Error(CompilerError{ CompilerErrorCode::TokenizationError, tokenizeResult.ErrorData().Message });
+        return Error(CompilerError{ CompilerErrorCode::TokenizationError, tokenizeResult.Error().value().Message });
 
-    return Compile(tokenizeResult.SuccessData());
+    return Compile(tokenizeResult.Success().value());
 }
 
 Result<VmProgram, CompilerError> Compiler::CompileFile(std::string_view inputFilePath)

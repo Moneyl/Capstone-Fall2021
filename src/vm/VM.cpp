@@ -47,9 +47,9 @@ Result<void, VMError> VM::LoadProgram(std::string_view inFilePath)
 {
     Result<VmProgram, std::string> program = VmProgram::Read(inFilePath);
     if (program.Error())
-        return Error(VMError{ VMErrorCode::ProgramFileLoadFailure, program.ErrorData() });
+        return Error(VMError{ VMErrorCode::ProgramFileLoadFailure, program.Error().value() });
 
-    return LoadProgram(program.SuccessData());
+    return LoadProgram(program.Success().value());
 }
 
 Result<void, VMError> VM::LoadProgramFromSource(std::string_view inFilePath)
@@ -59,11 +59,11 @@ Result<void, VMError> VM::LoadProgramFromSource(std::string_view inFilePath)
     Result<VmProgram, CompilerError> compileResult = compiler.CompileFile(inFilePath);
     if (compileResult.Error())
     {
-        CompilerError error = compileResult.ErrorData();
+        CompilerError error = compileResult.Error().value();
         return Error(VMError{ VMErrorCode::ProgramFileLoadFailure, error.Message });
     }
 
-    return LoadProgram(compileResult.SuccessData());
+    return LoadProgram(compileResult.Success().value());
 }
 
 Result<void, VMError> VM::Cycle()
