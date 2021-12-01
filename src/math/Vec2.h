@@ -21,12 +21,12 @@ struct Vec2
     //Helpers
     T Distance(const Vec2<T>& b) const
     {
-        return sqrt<T>(pow<T>(b.x - x, 2) + pow<T>(b.y - y, 2));
+        return std::sqrt<T>(pow<T>(b.x - x, 2) + pow<T>(b.y - y, 2));
     }
 
-    T Length(const Vec2<T>& b) const
+    T Length() const
     {
-        return sqrt<T>((x * x) + (y * y));
+        return std::sqrt((x * x) + (y * y));
     }
 
     Vec2<T> Normalized() const
@@ -34,25 +34,39 @@ struct Vec2
         return *this / Length();
     }
 
+    void Rotate(const Vec2<f32>& origin, f32 angleDegrees)
+    {
+        const f32 angleRadians = ToRadians(angleDegrees);
+        const Vec2<f32> rotation = { cos(angleRadians), sin(angleRadians) };
+        const Vec2<f32> posToOrigin = *this - origin;
+        x = (posToOrigin.x * rotation.x) - (posToOrigin.y * rotation.y) + origin.x;
+        y = (posToOrigin.x * rotation.y) + (posToOrigin.y * rotation.x) + origin.y;
+    }
+
     //Operator overloads
-    Vec2<T> operator-(const Vec2<T>& b)
+    Vec2<T> operator-(const Vec2<T>& b) const
     {
         return Vec2<T>{ x - b.x, y - b.y };
     }
 
-    Vec2<T> operator+(const Vec2<T>& b)
+    Vec2<T> operator+(const Vec2<T>& b) const
     {
         return Vec2<T>{ x + b.x, y + b.y };
     }
 
-    Vec2<T> operator/(T scalar)
+    Vec2<T> operator/(T scalar) const
     {
         return Vec2<T>{ x / scalar, y / scalar };
     }
 
-    Vec2<T> operator*(T scalar)
+    Vec2<T> operator*(T scalar) const
     {
         return Vec2<T>{ x* scalar, y* scalar };
+    }
+
+    Vec2<T> operator*(const Vec2<T>& b) const
+    {
+        return Vec2<T>{ x* b.x, y* b.y };
     }
 
     Vec2<T> operator+=(const Vec2<T>& b)
@@ -76,6 +90,13 @@ struct Vec2
     Vec2<T> operator*=(T scalar)
     {
         *this = (*this) * b;
+        return *this;
+    }
+
+    Vec2<T> operator*=(const Vec2<T>& b)
+    {
+        this->x *= b.x;
+        this->y *= b.y;
         return *this;
     }
 

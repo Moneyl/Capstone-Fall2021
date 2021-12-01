@@ -5,6 +5,8 @@
 ; Increment r0 forever
 !main
 add r0 1
+mov r2 2
+store P_STEERING r2 ; Constant turning
 
 ; if r0 > 15 then move forward,
 cmp r0 5
@@ -21,13 +23,13 @@ add r1 1
 mov r0 0
 jmp !main
 
-; Move forward
+; Move forward & turn clockwise
 !forward
 mov r2 5
 store P_SPEDOMETER r2
 jmp !reset_check
 
-; Move backwards
+; Move backwards & turn counter clockwise
 !backward
 mov r2 -5
 store P_SPEDOMETER r2

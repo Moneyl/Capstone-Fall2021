@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <backends/imgui_impl_sdl.h>
 #include <backends/imgui_impl_opengl3.h>
+#include "math/Util.h"
 
 Renderer::Renderer(SDL_Window* window, SDL_Surface* surface, SDL_Renderer* renderer, Fonts* fonts)
 {
@@ -80,24 +81,44 @@ void Renderer::HandleWindowResize(i32 newWidth, i32 newHeight)
     _windowHeight = newHeight;
 }
 
-void Renderer::DrawLine(const Vec2<i32>& begin, const Vec2<i32> end, const Vec4<u8>& color)
+void Renderer::DrawLine(const Vec2<f32>& begin, const Vec2<f32> end, const Vec4<u8>& color)
 {
     SDL_SetRenderDrawColor(_renderer, color.x, color.y, color.z, color.w);
-    SDL_RenderDrawLine(_renderer, begin.x, begin.y, end.x, end.y);
+    SDL_RenderDrawLineF(_renderer, begin.x, begin.y, end.x, end.y);
 }
 
-void Renderer::DrawRectangle(const Vec2<i32>& min, const Vec2<i32>& size, const Vec4<u8>& color)
+void Renderer::DrawRectangle(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color)
 {
     SDL_SetRenderDrawColor(_renderer, color.x, color.y, color.z, color.w);
-    SDL_Rect rect = { min.x, min.y, size.x, size.y };
-    SDL_RenderDrawRect(_renderer, &rect);
+    SDL_FRect rect = { min.x, min.y, size.x, size.y };
+    SDL_RenderDrawRectF(_renderer, &rect);
 }
 
-void Renderer::DrawRectangleFilled(const Vec2<i32>& min, const Vec2<i32>& size, const Vec4<u8>& color)
+void Renderer::DrawRectangleFilled(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color)
 {
     SDL_SetRenderDrawColor(_renderer, color.x, color.y, color.z, color.w);
-    SDL_Rect rect = { min.x, min.y, size.x, size.y };
-    SDL_RenderFillRect(_renderer, &rect);
+    SDL_FRect rect = { min.x, min.y, size.x, size.y };
+    SDL_RenderFillRectF(_renderer, &rect);
+}
+
+void Renderer::DrawTriangle(const Vec2<f32>& pos, f32 size, f32 angle, const Vec4<u8>& color)
+{
+    //Calculate points
+    Vec2<f32> p0 = pos + Vec2<f32>{ size, 0 };
+    Vec2<f32> p1 = pos + Vec2<f32>{ -size, size * 0.75f };
+    Vec2<f32> p2 = pos + Vec2<f32>{ -size, -size * 0.75f };
+
+    //Rotate points around triangle center
+    const Vec2<f32> origin = pos;
+    p0.Rotate(origin, angle);
+    p1.Rotate(origin, angle);
+    p2.Rotate(origin, angle);
+
+    //Draw lines between points
+    SDL_SetRenderDrawColor(_renderer, color.x, color.y, color.z, color.w);
+    SDL_RenderDrawLineF(_renderer, p0.x, p0.y, p1.x, p1.y);
+    SDL_RenderDrawLineF(_renderer, p1.x, p1.y, p2.x, p2.y);
+    SDL_RenderDrawLineF(_renderer, p2.x, p2.y, p0.x, p0.y);
 }
 
 void Renderer::InitImGui()

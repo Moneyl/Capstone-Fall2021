@@ -31,9 +31,10 @@ public:
     RenderBackend BackendType = Unknown;
 
     //Primitive drawing functions
-    void DrawLine(const Vec2<i32>& begin, const Vec2<i32> end, const Vec4<u8>& color = ColorWhite);
-    void DrawRectangle(const Vec2<i32>& min, const Vec2<i32>& size, const Vec4<u8>& color = ColorWhite);
-    void DrawRectangleFilled(const Vec2<i32>& min, const Vec2<i32>& size, const Vec4<u8>& color = ColorWhite);
+    void DrawLine(const Vec2<f32>& begin, const Vec2<f32> end, const Vec4<u8>& color = ColorWhite);
+    void DrawRectangle(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
+    void DrawRectangleFilled(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
+    void DrawTriangle(const Vec2<f32>& pos, f32 size, f32 angle, const Vec4<u8>& color = ColorWhite);
 
 private:
     void InitImGui();

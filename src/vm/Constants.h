@@ -11,6 +11,7 @@ enum class Port
     Spedometer = (sizeof(VmValue) * 0),
     Heat = (sizeof(VmValue) * 1),
     Compass = (sizeof(VmValue) * 2),
+    Steering = (sizeof(VmValue) * 3),
     NumPorts = 3,
 };
 
@@ -21,6 +22,7 @@ static std::unordered_map<std::string_view, VmValue> BuiltInConstants =
     { "P_SPEDOMETER", (VmValue)Port::Spedometer },
     { "P_HEAT", (VmValue)Port::Heat },
     { "P_COMPASS", (VmValue)Port::Compass },
+    { "P_STEERING", (VmValue)Port::Steering },
 
     //Interrupts
 

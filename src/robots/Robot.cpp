@@ -1,4 +1,5 @@
 #include "Robot.h"
+#include "math/Util.h"
 
 void Robot::Update(f32 deltaTime, u32 cyclesPerFrame)
 {
@@ -18,10 +19,18 @@ void Robot::Update(f32 deltaTime, u32 cyclesPerFrame)
         }
 
         //Update robot hardware
-        const VmValue& spedometer = GetPort(Port::Spedometer);
-        Speed = spedometer;
-        //Todo: Change direction depending on robot angle
-        Position.y += Speed;
+        //Movement
+        {
+            const VmValue& steering = GetPort(Port::Steering);
+            Angle += steering;
+
+            const VmValue& spedometer = GetPort(Port::Spedometer);
+            Speed = spedometer;
+
+            const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
+            Position += direction * Speed;
+            //Todo: Push back into the arena if outside of it
+        }
     }
 }
 

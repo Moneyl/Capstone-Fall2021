@@ -28,6 +28,9 @@ add_executable (CapstoneFall2021
     ${CMAKE_SOURCE_DIR}/dependencies/imgui/imgui_tables.cpp
     ${CMAKE_SOURCE_DIR}/dependencies/imgui/backends/imgui_impl_sdl.cpp
     ${CMAKE_SOURCE_DIR}/dependencies/imgui/backends/imgui_impl_opengl3.cpp
+    # nativefiledialog files
+    ${CMAKE_SOURCE_DIR}/dependencies/nativefiledialog/src/nfd_common.c
+    ${CMAKE_SOURCE_DIR}/dependencies/nativefiledialog/src/nfd_win.cpp
 )
 
 # Set include directories
@@ -38,6 +41,8 @@ target_include_directories(CapstoneFall2021 SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/Dependencies/SDL/include/
     ${CMAKE_SOURCE_DIR}/Dependencies/IconFontCppHeaders/
     ${CMAKE_SOURCE_DIR}/Dependencies/magic_enum/include/
+    ${CMAKE_SOURCE_DIR}/Dependencies/nativefiledialog/src/
+    ${CMAKE_SOURCE_DIR}/Dependencies/nativefiledialog/src/include/
 )
 
 # Set libraries to statically link

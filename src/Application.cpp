@@ -101,7 +101,9 @@ bool Application::MainLoop()
         
         //Draw robots
         for (Robot& robot : Robots)
-            Renderer.DrawRectangle({ robot.Position.x, robot.Position.y }, { 10, 15 }, { 0, 127, 0, 255 });
+        {
+            Renderer.DrawTriangle(robot.Position, 10.0f, robot.Angle, { 0, 127, 0, 255 });
+        }
 
         //Render frame
         Renderer.Update(_deltaTime);
