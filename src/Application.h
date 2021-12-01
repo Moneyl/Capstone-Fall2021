@@ -10,7 +10,7 @@
 #include "gui/Fonts.h"
 #include "gui/Gui.h"
 #include "BuildConfig.h"
-#include "robots/Robot.h"
+#include "robots/Arena.h"
 #include <vector>
 
 //Root class of app. Owns data that is alive for the entire app runtime.
@@ -24,12 +24,7 @@ public:
     Renderer Renderer;
     Fonts Fonts;
     Gui Gui;
-    std::vector<Robot> Robots = {};
-
-    //App config
-    Vec2<i32> ArenaSize = { 1000, 1000 };
-    u32 CyclesPerSecond = 20; //# of VM cycles to run each second
-    bool RobotAutoReloadEnabled = true; //Auto recompile robot program when source file is edited
+    Arena Arena;
 
 private:
     bool Init();
@@ -51,6 +46,5 @@ private:
     const u32 _targetFramerate = 60;
     const f32 targetDeltaTime = 1.0f / (f32)_targetFramerate;
     f32 _deltaTime = 0.0f;
-    f32 _cycleAccumulator = 0.0f; //Accumulates time to execute VM cycles
     Timer _frameTimer;
 };

@@ -12,7 +12,7 @@ bool RobotListVisible = true;
 
 Gui::Gui(Application* app) : _app(app)
 {
-    if (app->Robots.size() > 0)
+    if (app->Arena.Robots.size() > 0)
         _robotIndex = 0;
 }
 
@@ -89,7 +89,7 @@ void Gui::DrawMainMenuBar()
 
         if (ImGui::BeginMenu("Tools"))
         {
-            ImGui::MenuItem(ICON_FA_SYNC_ALT " Auto reload robots", "", &_app->RobotAutoReloadEnabled);
+            ImGui::MenuItem(ICON_FA_SYNC_ALT " Auto reload robots", "", &_app->Arena.RobotAutoReloadEnabled);
             ImGui::TooltipOnPrevious("Auto recompile robot programs when their source file is edited and saved. This also resets the VM (memory, registers, stack, variables, etc).");
             ImGui::EndMenu();
         }
@@ -145,13 +145,13 @@ void Gui::DrawVariables()
     ImGui::Separator();
 
     //Don't draw gui if no robot is selected
-    if (_robotIndex == -1 || _robotIndex >= _app->Robots.size())
+    if (_robotIndex == -1 || _robotIndex >= _app->Arena.Robots.size())
     {
         DrawNoRobotWarning();
         ImGui::End();
         return;
     }
-    Robot& robot = _app->Robots[_robotIndex];
+    Robot& robot = _app->Arena.Robots[_robotIndex];
 
     //Variables table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
@@ -201,13 +201,13 @@ void Gui::DrawStack()
     ImGui::Separator();
 
     //Don't draw gui if no robot is selected
-    if (_robotIndex == -1 || _robotIndex >= _app->Robots.size())
+    if (_robotIndex == -1 || _robotIndex >= _app->Arena.Robots.size())
     {
         DrawNoRobotWarning();
         ImGui::End();
         return;
     }
-    Robot& robot = _app->Robots[_robotIndex];
+    Robot& robot = _app->Arena.Robots[_robotIndex];
 
     //Stack table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
@@ -255,13 +255,13 @@ void Gui::DrawDisassembler()
     ImGui::Separator();
 
     //Don't draw gui if no robot is selected
-    if (_robotIndex == -1 || _robotIndex >= _app->Robots.size())
+    if (_robotIndex == -1 || _robotIndex >= _app->Arena.Robots.size())
     {
         DrawNoRobotWarning();
         ImGui::End();
         return;
     }
-    Robot& robot = _app->Robots[_robotIndex];
+    Robot& robot = _app->Arena.Robots[_robotIndex];
 
     //Options
     static bool useRealOpcodeNames = false;
@@ -332,17 +332,17 @@ void Gui::DrawVmState()
     ImGui::Separator();
 
     //Don't draw gui if no robot is selected
-    if (_robotIndex == -1 || _robotIndex >= _app->Robots.size())
+    if (_robotIndex == -1 || _robotIndex >= _app->Arena.Robots.size())
     {
         DrawNoRobotWarning();
         ImGui::End();
         return;
     }
-    Robot& robot = _app->Robots[_robotIndex];
+    Robot& robot = _app->Arena.Robots[_robotIndex];
 
     const u32 min = 0;
     const u32 max = 1000;
-    ImGui::SliderScalar("Cycles/second", ImGuiDataType_U32, &_app->CyclesPerSecond, &min, &max);
+    ImGui::SliderScalar("Cycles/second", ImGuiDataType_U32, &_app->Arena.CyclesPerSecond, &min, &max);
     ImGui::LabelAndValue("Memory size:", std::to_string(robot.Vm->MEMORY_SIZE) + " bytes");
     ImGui::LabelAndValue("Program size:", std::to_string(robot.Vm->InstructionsSize()) + " bytes");
     ImGui::LabelAndValue("Variables size:", std::to_string(robot.Vm->VariablesSize()) + " bytes");
@@ -410,9 +410,9 @@ void Gui::DrawRobotList()
 
     if (ImGui::BeginChild("RobotsList", { 0, 0 }, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
     {
-        for (u32 i = 0; i < _app->Robots.size(); i++)
+        for (u32 i = 0; i < _app->Arena.Robots.size(); i++)
         {
-            Robot& robot = _app->Robots[i];
+            Robot& robot = _app->Arena.Robots[i];
             std::string label = "Robot " + std::to_string(i) + " - " + std::filesystem::path(robot.SourcePath()).filename().string();
             bool selected = (i == _robotIndex);
             if (ImGui::Selectable(label.c_str(), &selected))

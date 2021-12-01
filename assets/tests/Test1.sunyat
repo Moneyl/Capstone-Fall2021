@@ -33,4 +33,8 @@ jmp !reset_check
 !backward
 mov r2 -5
 store P_SPEDOMETER r2
+mov r2 1
+store P_SHOOT r2
+mov r2 0
+store P_TURRET_ABS r2 ; Keep turret facing east when going backwards
 jmp !reset_check

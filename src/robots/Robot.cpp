@@ -1,7 +1,9 @@
 #include "Robot.h"
 #include "math/Util.h"
+#include "render/Renderer.h"
+#include "Arena.h"
 
-void Robot::Update(f32 deltaTime, u32 cyclesPerFrame)
+void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerFrame)
 {
     if (Error)
         return;
@@ -18,20 +20,55 @@ void Robot::Update(f32 deltaTime, u32 cyclesPerFrame)
             return;
         }
 
+        //Todo: Make hardware framerate independent (e.g. framerate shouldn't affect movement speed or turn rate)
+        //Todo: Also make it cycle/s independent. Currently increases cycles/s results in faster movement
         //Update robot hardware
         //Movement
         {
             const VmValue& steering = GetPort(Port::Steering);
             Angle += steering;
+            TurretAngle += steering; //Turret rotates with the chassis
 
             const VmValue& spedometer = GetPort(Port::Spedometer);
             Speed = spedometer;
 
             const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
             Position += direction * Speed;
-            //Todo: Push back into the arena if outside of it
+        }
+        
+        //Turret
+        {
+            VmValue& rotateOffset = GetPort(Port::TurretRotateOffset);
+            if (rotateOffset != 0)
+            {
+                TurretAngle += rotateOffset;
+                rotateOffset = 0;
+            }
+            
+            VmValue& rotateAbsolute = GetPort(Port::TurretRotateAbsolute);
+            if (rotateAbsolute != std::numeric_limits<VmValue>::max())
+            {
+                TurretAngle = rotateAbsolute;
+                rotateAbsolute = std::numeric_limits<VmValue>::max(); //Special value for this port to signal that it's not set
+            }
+
+            VmValue& shoot = GetPort(Port::TurretShoot);
+            if (shoot != 0)
+            {
+                arena.CreateBullet(Position, TurretDirection(), ID());
+                shoot = 0;
+            }
         }
     }
+}
+
+void Robot::Draw(Renderer* renderer)
+{
+    //Chassis
+    renderer->DrawTriangle(Position, Robot::ChassisSize, Angle, { 0, 127, 0, 255 });
+
+    //Turret
+    renderer->DrawLine(Position, Position + TurretDirection() * Robot::TurretLength, ColorWhite);
 }
 
 void Robot::LoadProgramFromSource(std::string_view inFilePath)
@@ -68,4 +105,10 @@ void Robot::TryReload()
 VmValue& Robot::GetPort(Port port)
 {
     return *(VmValue*)(&Vm->Memory[(VmValue)port]);
+}
+
+Vec2<f32> Robot::TurretDirection()
+{
+    const f32 turretAngleRadians = ToRadians(TurretAngle);
+    return Vec2<f32>(cos(turretAngleRadians), sin(turretAngleRadians)).Normalized();
 }

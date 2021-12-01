@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "utility/Platform.h"
 #include "vm/VM.h"
+#include "math/Util.h"
 #include <iostream>
 
 bool Application::Run()
@@ -43,18 +44,7 @@ bool Application::Init()
         return false;
     }
     Renderer = { _window, _display, _rendererSDL, &Fonts };
-
-    //Create robots
-    Vec2<i32> arenaCenter = ArenaSize / 2;
-    Robot& robot = Robots.emplace_back();
-    robot.LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
-    robot.Position.x = arenaCenter.x + 400;
-    robot.Position.y = arenaCenter.y + 50;
-    Robot& robot2 = Robots.emplace_back();
-    robot2.LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test1.sunyat");
-    robot2.Position.x = arenaCenter.x + 300;
-    robot2.Position.y = arenaCenter.y + 0;
-
+    Arena.Reset();
     Gui = { this };
 
     return true;
@@ -75,35 +65,13 @@ bool Application::MainLoop()
         while (SDL_PollEvent(&event))
             HandleEvent(&event);
 
-        //Calculate how many cycles to execute this frame
-        //Only whole cycles are executed. If there's only enough time for part of a cycle it'll be accumulated for next frame
-        _cycleAccumulator += _deltaTime; //Accumulate cycle time
-        const f32 timeBetweenCycles = 1.0f / (f32)CyclesPerSecond;
-        const u32 cyclesToExecute = truncf(_cycleAccumulator / timeBetweenCycles);
-        _cycleAccumulator -= cyclesToExecute * timeBetweenCycles; //Remove time for executed cycles
-
-        //Update robots
-        for (Robot& robot : Robots)
-        {
-            //Recompile source file if it was edited
-            if (RobotAutoReloadEnabled)
-                robot.TryReload();
-
-            robot.Update(_deltaTime, cyclesToExecute);
-        }
+        Arena.Update(_deltaTime);
+        Arena.Draw(&Renderer);
+        if (Input.KeyPressed(SDL_KeyCode::SDLK_F1))
+            Arena.Reset();
 
         //Update app logic
         Gui.Update(_deltaTime);
-
-        //Draw arena
-        Renderer.DrawRectangleFilled({ 400, 50 }, ArenaSize, { 64, 64, 64, 255 }); //Floor
-        Renderer.DrawRectangle({ 400, 50 }, ArenaSize, { 200, 0, 0, 255 }); //Border
-        
-        //Draw robots
-        for (Robot& robot : Robots)
-        {
-            Renderer.DrawTriangle(robot.Position, 10.0f, robot.Angle, { 0, 127, 0, 255 });
-        }
 
         //Render frame
         Renderer.Update(_deltaTime);
@@ -124,7 +92,7 @@ bool Application::MainLoop()
 bool Application::Shutdown()
 {
     //Cleanup resources
-    Robots.clear();
+    Arena.Robots.clear();
     Renderer.Cleanup();
     SDL_DestroyRenderer(_rendererSDL);
     SDL_DestroyWindow(_window);

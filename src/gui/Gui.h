@@ -9,7 +9,7 @@ class Gui
 {
 public:
     Gui() { }
-    Gui(Application* fonts);
+    Gui(Application* app);
 
     void Update(f32 deltaTime);
 
