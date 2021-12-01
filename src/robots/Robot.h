@@ -5,6 +5,7 @@
 #include "vm/Constants.h"
 #include <filesystem>
 #include <memory> //For std::unique_ptr<T>
+#include <array>
 
 class Renderer;
 class Arena;
@@ -34,6 +35,10 @@ public:
     //Use to uniquely identify a robot
     u64 ID() { return _id; }
     Vec2<f32> TurretDirection();
+    //Points of the triangle that make up the chassis
+    std::array<Vec2<f32>, 3> GetChassisPoints();
+    //Apply damage to the chassis
+    void Damage(VmValue damage);
 
     //Virtual machine that runs the robots logic program
     std::unique_ptr<VM> Vm = std::unique_ptr<VM>(new VM());
@@ -41,6 +46,7 @@ public:
     VmValue Angle = 0; //Robot chassis angle in degress
     VmValue Speed = 0; //Current speed
     VmValue TurretAngle = 0;
+    VmValue Health = 10;
 
     //Set to true when an error occurs. If true ::Update() is stopped until the error is resolved.
     bool Error = false;

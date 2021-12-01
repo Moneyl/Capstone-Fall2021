@@ -11,6 +11,23 @@ void Arena::Update(f32 deltaTime)
     const u32 cyclesToExecute = truncf(_cycleAccumulator / timeBetweenCycles);
     _cycleAccumulator -= cyclesToExecute * timeBetweenCycles; //Remove time for executed cycles
 
+    auto robot = Robots.begin();
+    while (robot != Robots.end())
+    {
+        //Robot died
+        if (robot->Health <= 0)
+        {
+            robot = Robots.erase(robot);
+            continue;
+        }
+
+        //Recompile source file if it was edited
+        if (RobotAutoReloadEnabled)
+            robot->TryReload();
+
+        robot->Update(*this, deltaTime, cyclesToExecute);
+        robot++;
+    }
     for (Robot& robot : Robots)
     {
         //Recompile source file if it was edited
@@ -28,9 +45,26 @@ void Arena::Update(f32 deltaTime)
         if (!IsPositionInRect(bullet->Position, Position, Size))
         {
             bullet = Bullets.erase(bullet); //Outside of arena, delete
+            continue;
         }
-        else
-            bullet++;
+        
+        //Check if bullet collided with any robot
+        for (Robot& robot : Robots)
+        {
+            if (robot.ID() == bullet->Creator)
+                continue; //Don't interact with the robot that fired the bullet
+
+            std::array<Vec2<f32>, 3> chassis = robot.GetChassisPoints();
+            if (IsPositionInTriangle(bullet->Position, chassis[0], chassis[1], chassis[2]))
+            {
+                //Hit a bot. Damage bot and delete bullet
+                robot.Damage(bullet->Damage);
+                bullet = Bullets.erase(bullet);
+                continue;
+            }
+        }
+        
+        bullet++;
 
         //Todo: Check if bullet colliding with any robot other than its creator. Apply damage if so.
     }
@@ -63,7 +97,7 @@ void Arena::Reset()
     robot2.Position.y = arenaCenter.y - 50;
 }
 
-void Arena::CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, f32 damage)
+void Arena::CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, VmValue damage)
 {
     Bullets.emplace_back(position, direction, creator, damage);
 }

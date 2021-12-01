@@ -5,7 +5,7 @@
 
 void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerFrame)
 {
-    if (Error)
+    if (Error || Health <= 0)
         return;
 
     //Cycle VM
@@ -111,4 +111,20 @@ Vec2<f32> Robot::TurretDirection()
 {
     const f32 turretAngleRadians = ToRadians(TurretAngle);
     return Vec2<f32>(cos(turretAngleRadians), sin(turretAngleRadians)).Normalized();
+}
+
+std::array<Vec2<f32>, 3> Robot::GetChassisPoints()
+{
+    return
+    {
+        Vec2<f32>{Position + Vec2<f32>{ ChassisSize, 0 }},
+        Vec2<f32>{Position + Vec2<f32>{ -ChassisSize, ChassisSize * 0.75f }},
+        Vec2<f32>{Position + Vec2<f32>{ -ChassisSize, -ChassisSize * 0.75f }}
+    };
+}
+
+void Robot::Damage(VmValue damage)
+{
+    if (Health > 0)
+        Health -= damage;
 }
