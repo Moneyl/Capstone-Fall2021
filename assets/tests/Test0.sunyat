@@ -16,7 +16,7 @@ mov r5 P_SPEDOMETER
 
 mov r6 1
 store P_SHOOT r6
-mov r6 20
+mov r6 100
 store P_TURRET_OFS r6 ; Keep rotating turret counter clockwise
 
 ; Defining these at the end to ensure variable definition order doesn't matter. Not recommended for clean code.

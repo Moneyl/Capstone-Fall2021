@@ -3,13 +3,13 @@
 #include "render/Renderer.h"
 #include "Arena.h"
 
-void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerFrame)
+void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
 {
     if (Error || Health <= 0)
         return;
 
     //Cycle VM
-    for (u32 i = 0; i < cyclesPerFrame; i++)
+    for (u32 i = 0; i < cyclesToExecute; i++)
     {
         Result<void, VMError> cycleResult = Vm->Cycle();
         if (cycleResult.Error())
@@ -20,20 +20,21 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerFrame)
             return;
         }
 
-        //Todo: Make hardware framerate independent (e.g. framerate shouldn't affect movement speed or turn rate)
-        //Todo: Also make it cycle/s independent. Currently increases cycles/s results in faster movement
+        //Multiplier used to make hardware independent of framerate and cycle rate
+        const f32 timePerCycle = deltaTime / (f32)cyclesToExecute;
+
         //Update robot hardware
         //Movement
         {
             const VmValue& steering = GetPort(Port::Steering);
-            Angle += steering;
-            TurretAngle += steering; //Turret rotates with the chassis
+            Angle += steering * timePerCycle;
+            TurretAngle += steering * timePerCycle; //Turret rotates with the chassis
 
             const VmValue& spedometer = GetPort(Port::Spedometer);
             Speed = spedometer;
 
             const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
-            Position += direction * Speed;
+            Position += direction * Speed * timePerCycle;
         }
         
         //Turret
@@ -41,7 +42,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerFrame)
             VmValue& rotateOffset = GetPort(Port::TurretRotateOffset);
             if (rotateOffset != 0)
             {
-                TurretAngle += rotateOffset;
+                TurretAngle += rotateOffset * timePerCycle;
                 rotateOffset = 0;
             }
             
@@ -53,10 +54,15 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerFrame)
             }
 
             VmValue& shoot = GetPort(Port::TurretShoot);
-            if (shoot != 0)
+            if (shoot != 0 && _turretShootTimer >= TurretShootFrequency)
             {
                 arena.CreateBullet(Position, TurretDirection(), ID());
+                _turretShootTimer = 0.0f;
                 shoot = 0;
+            }
+            else
+            {
+                _turretShootTimer += timePerCycle;
             }
         }
     }

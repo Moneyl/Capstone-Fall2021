@@ -9,36 +9,34 @@ void Arena::Update(f32 deltaTime)
     _cycleAccumulator += deltaTime; //Accumulate cycle time
     const f32 timeBetweenCycles = 1.0f / (f32)CyclesPerSecond;
     const u32 cyclesToExecute = truncf(_cycleAccumulator / timeBetweenCycles);
-    _cycleAccumulator -= cyclesToExecute * timeBetweenCycles; //Remove time for executed cycles
+    const f32 cyclesDelta = cyclesToExecute * timeBetweenCycles;
 
-    auto robot = Robots.begin();
-    while (robot != Robots.end())
+    //Update robots
+    if (CyclesPerSecond != 0) //If CyclesPerSecond == 0, cyclesDelta == NaN. Breaks _cycleAccumulator and subsequent logic
     {
-        //Robot died
-        if (robot->Health <= 0)
+        _cycleAccumulator -= cyclesDelta;
+
+        auto robot = Robots.begin();
+        while (robot != Robots.end())
         {
-            robot = Robots.erase(robot);
-            continue;
+            //Robot died
+            if (robot->Health <= 0)
+            {
+                robot = Robots.erase(robot);
+                continue;
+            }
+
+            //Recompile source file if it was edited
+            if (RobotAutoReloadEnabled)
+                robot->TryReload();
+
+            robot->Update(*this, cyclesDelta, cyclesToExecute);
+            robot++;
         }
-
-        //Recompile source file if it was edited
-        if (RobotAutoReloadEnabled)
-            robot->TryReload();
-
-        robot->Update(*this, deltaTime, cyclesToExecute);
-        robot++;
-    }
-    for (Robot& robot : Robots)
-    {
-        //Recompile source file if it was edited
-        if (RobotAutoReloadEnabled)
-            robot.TryReload();
-
-        robot.Update(*this, deltaTime, cyclesToExecute);
-        //Todo: Push robots back into the arena if they're outside of it
     }
 
-    auto bullet = Bullets.begin();
+    //Update bullets
+    auto bullet = Bullets.begin(); //Done this way to allow deletion during iteration
     while (bullet != Bullets.end())
     {
         bullet->Position += bullet->Direction * Bullet::Speed;
@@ -49,6 +47,7 @@ void Arena::Update(f32 deltaTime)
         }
         
         //Check if bullet collided with any robot
+        bool hitRobot = false;
         for (Robot& robot : Robots)
         {
             if (robot.ID() == bullet->Creator)
@@ -59,14 +58,17 @@ void Arena::Update(f32 deltaTime)
             {
                 //Hit a bot. Damage bot and delete bullet
                 robot.Damage(bullet->Damage);
-                bullet = Bullets.erase(bullet);
-                continue;
+                hitRobot = true;
+                break;
             }
+        }
+        if (hitRobot)
+        {
+            bullet = Bullets.erase(bullet);
+            continue;
         }
         
         bullet++;
-
-        //Todo: Check if bullet colliding with any robot other than its creator. Apply damage if so.
     }
 }
 
