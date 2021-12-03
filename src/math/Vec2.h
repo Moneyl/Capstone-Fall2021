@@ -21,7 +21,7 @@ struct Vec2
     //Helpers
     T Distance(const Vec2<T>& b) const
     {
-        return std::sqrt<T>(pow<T>(b.x - x, 2) + pow<T>(b.y - y, 2));
+        return std::sqrt(pow(b.x - x, 2) + pow(b.y - y, 2));
     }
 
     T Length() const

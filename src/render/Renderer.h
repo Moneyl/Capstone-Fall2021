@@ -33,6 +33,7 @@ public:
     //Primitive drawing functions
     void DrawLine(const Vec2<f32>& begin, const Vec2<f32> end, const Vec4<u8>& color = ColorWhite);
     void DrawRectangle(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
+    void DrawRectangleCentered(const Vec2<f32>& center, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
     void DrawRectangleFilled(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
     void DrawTriangle(const Vec2<f32>& pos, f32 size, f32 angle, const Vec4<u8>& color = ColorWhite);
 

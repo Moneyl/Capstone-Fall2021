@@ -70,6 +70,41 @@ void Arena::Update(f32 deltaTime)
         
         bullet++;
     }
+
+    //Update mines
+    auto mine = Mines.begin();
+    while (mine != Mines.end())
+    {
+        //Delete mines that were detonated last frame
+        if (!mine->Alive)
+        {
+            mine = Mines.erase(mine);
+            continue;
+        }
+
+        //Detect collision with robot
+        bool hitRobot = false;
+        for (Robot& robot : Robots)
+        {
+            if (robot.ID() == mine->Creator)
+                continue; //Don't interact with the creator
+
+            std::array<Vec2<f32>, 3> chassis = robot.GetChassisPoints();
+            if (IsPositionInTriangle(mine->Position, chassis[0], chassis[1], chassis[2]))
+            {
+                //Hit a bot. Detonate mine
+                DetonateMine(*mine);
+                hitRobot = true;
+                break;
+            }
+        }
+
+        //Handle collision
+        if (hitRobot)
+            mine = Mines.erase(mine);
+        else
+            mine++;
+    }
 }
 
 void Arena::Draw(Renderer* renderer)
@@ -81,6 +116,9 @@ void Arena::Draw(Renderer* renderer)
 
     for (Bullet& bullet : Bullets)
         renderer->DrawLine(bullet.Position, bullet.Position + bullet.Direction * Bullet::Length, { 255, 0, 0, 255 });
+
+    for (Mine& mine : Mines)
+        renderer->DrawRectangleCentered(mine.Position, { Mine::Size, Mine::Size }, { 255, 0, 0, 255 });
 }
 
 void Arena::Reset()
@@ -102,4 +140,28 @@ void Arena::Reset()
 void Arena::CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, VmValue damage)
 {
     Bullets.emplace_back(position, direction, creator, damage);
+}
+
+void Arena::CreateMine(const Vec2<f32>& position, u64 creator, VmValue damage)
+{
+    Mines.emplace_back(position, creator, damage);
+}
+
+void Arena::DetonateMine(Mine& mine)
+{
+    //Damage robots within the explosion radius
+    for (Robot& robot : Robots)
+    {
+        if (robot.ID() == mine.Creator)
+            continue;
+
+        const f32 distance = robot.Position.Distance(mine.Position);
+        if (distance <= Mine::ExplosionRadius)
+        {
+            const f32 damage = mine.Damage * (1 / distance); //Damage is inversely proportional with distance
+            robot.Damage(damage);
+        }
+    }
+    
+    mine.Alive = false;
 }

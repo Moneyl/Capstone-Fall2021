@@ -47,16 +47,20 @@ public:
     f32 Speed = 0; //Current speed
     f32 TurretAngle = 0;
     f32 Health = 10;
+    VmValue NumMines = MaxMines;
 
     //Set to true when an error occurs. If true ::Update() is stopped until the error is resolved.
     bool Error = false;
 
     static const inline f32 TurretLength = 12.0f;
     static const inline f32 TurretShootFrequency = 1.0f / 5.0f; //Max shots / second of turrets
+    static const inline f32 MineLayerFrequency = 1.0f / 2.0f; //Max mines that can be laid per second
     static const inline f32 ChassisSize = 10.0f;
+    static const inline VmValue MaxMines = 10; //Todo: Make this configurable with #config directives
 private:
     std::filesystem::file_time_type _sourceFileLastWriteTime;
     std::string _sourceFilePath;
     u64 _id;
     f32 _turretShootTimer = 0.0f; //Limits turret fire rate
+    f32 _mineLayerTimer = 0.0f; //Limits mine layer rate
 };

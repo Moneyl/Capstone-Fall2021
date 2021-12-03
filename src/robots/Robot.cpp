@@ -65,6 +65,31 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
                 _turretShootTimer += timePerCycle;
             }
         }
+
+        //Mine layer & detonator
+        {
+            //Lay mines
+            VmValue& mineLayer = GetPort(Port::MineLayer);
+            if (mineLayer != 0 && NumMines > 0 && _mineLayerTimer >= MineLayerFrequency)
+            {
+                arena.CreateMine(Position, ID());
+                _mineLayerTimer = 0.0f;
+                NumMines--;
+            }
+            else
+            {
+                _mineLayerTimer += timePerCycle;
+            }
+
+            //Detonate laid mines
+            VmValue& mineTrigger = GetPort(Port::MineTrigger);
+            if (mineTrigger != 0)
+            {
+                for (Mine& mine : arena.Mines)
+                    if (mine.Creator == ID())
+                        arena.DetonateMine(mine);
+            }
+        }
     }
 }
 

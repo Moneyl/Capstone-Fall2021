@@ -42,4 +42,6 @@ mov r2 1
 store P_SHOOT r2
 mov r2 0
 store P_TURRET_ABS r2 ; Keep turret facing east when going backwards
+mov r2 0xFFFF
+store P_MINELAYER r2
 jmp !reset_check

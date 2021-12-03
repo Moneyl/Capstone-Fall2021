@@ -15,7 +15,9 @@ enum class Port
     TurretShoot = sizeof(VmValue) * 4,
     TurretRotateOffset = sizeof(VmValue) * 5,
     TurretRotateAbsolute = sizeof(VmValue) * 6,
-    NumPorts = 7,
+    MineLayer = sizeof(VmValue) * 7,
+    MineTrigger = sizeof(VmValue) * 8,
+    NumPorts = 8,
 };
 
 //Built in assembly constants
@@ -29,6 +31,8 @@ static std::unordered_map<std::string_view, VmValue> BuiltInConstants =
     { "P_SHOOT", (VmValue)Port::TurretShoot },
     { "P_TURRET_OFS", (VmValue)Port::TurretRotateOffset },
     { "P_TURRET_ABS", (VmValue)Port::TurretRotateAbsolute },
+    { "P_MINELAYER", (VmValue)Port::MineLayer },
+    { "P_MINETRIGGER", (VmValue)Port::MineTrigger },
 
     //Interrupts
 

@@ -94,6 +94,12 @@ void Renderer::DrawRectangle(const Vec2<f32>& min, const Vec2<f32>& size, const 
     SDL_RenderDrawRectF(_renderer, &rect);
 }
 
+void Renderer::DrawRectangleCentered(const Vec2<f32>& center, const Vec2<f32>& size, const Vec4<u8>& color)
+{
+    const Vec2<f32> min = center - (size / 2.0f);
+    DrawRectangle(min, size, color);
+}
+
 void Renderer::DrawRectangleFilled(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color)
 {
     SDL_SetRenderDrawColor(_renderer, color.x, color.y, color.z, color.w);
