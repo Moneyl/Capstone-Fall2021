@@ -138,13 +138,13 @@ VmValue& Robot::GetPort(Port port)
     return *(VmValue*)(&Vm->Memory[(VmValue)port]);
 }
 
-Vec2<f32> Robot::TurretDirection()
+Vec2<f32> Robot::TurretDirection() const
 {
     const f32 turretAngleRadians = ToRadians(TurretAngle);
     return Vec2<f32>(cos(turretAngleRadians), sin(turretAngleRadians)).Normalized();
 }
 
-std::array<Vec2<f32>, 3> Robot::GetChassisPoints()
+std::array<Vec2<f32>, 3> Robot::GetChassisPoints() const
 {
     return
     {
@@ -158,4 +158,10 @@ void Robot::Damage(VmValue damage)
 {
     if (Health > 0)
         Health -= damage;
+}
+
+bool Robot::Collides(const Vec2<f32>& point) const
+{
+    const std::array<Vec2<f32>, 3> chassis = GetChassisPoints();
+    return IsPositionInTriangle(point, chassis[0], chassis[1], chassis[2]);
 }

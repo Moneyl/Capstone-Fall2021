@@ -1,6 +1,8 @@
 #include "Arena.h"
 #include "render/Renderer.h"
 #include "math/Util.h"
+#include "utility/Algorithms.h"
+#include <algorithm>
 
 void Arena::Update(f32 deltaTime)
 {
@@ -15,96 +17,58 @@ void Arena::Update(f32 deltaTime)
     if (CyclesPerSecond != 0) //If CyclesPerSecond == 0, cyclesDelta == NaN. Breaks _cycleAccumulator and subsequent logic
     {
         _cycleAccumulator -= cyclesDelta;
-
-        auto robot = Robots.begin();
-        while (robot != Robots.end())
+        for (Robot& robot : Robots)
         {
-            //Robot died
-            if (robot->Health <= 0)
-            {
-                robot = Robots.erase(robot);
+            if (robot.Health <= 0)
                 continue;
-            }
 
             //Recompile source file if it was edited
             if (RobotAutoReloadEnabled)
-                robot->TryReload();
+                robot.TryReload();
 
-            robot->Update(*this, cyclesDelta, cyclesToExecute);
-            robot++;
+            robot.Update(*this, cyclesDelta, cyclesToExecute);
         }
     }
 
     //Update bullets
-    auto bullet = Bullets.begin(); //Done this way to allow deletion during iteration
-    while (bullet != Bullets.end())
+    for (Bullet& bullet : Bullets)
     {
-        bullet->Position += bullet->Direction * Bullet::Speed;
-        if (!IsPositionInRect(bullet->Position, Position, Size))
-        {
-            bullet = Bullets.erase(bullet); //Outside of arena, delete
-            continue;
-        }
-        
-        //Check if bullet collided with any robot
-        bool hitRobot = false;
-        for (Robot& robot : Robots)
-        {
-            if (robot.ID() == bullet->Creator)
-                continue; //Don't interact with the robot that fired the bullet
+        bullet.Position += bullet.Direction * Bullet::Speed;
+        if (!IsPositionInRect(bullet.Position, Position, Size))
+            bullet.Alive = false;
 
-            std::array<Vec2<f32>, 3> chassis = robot.GetChassisPoints();
-            if (IsPositionInTriangle(bullet->Position, chassis[0], chassis[1], chassis[2]))
-            {
-                //Hit a bot. Damage bot and delete bullet
-                robot.Damage(bullet->Damage);
-                hitRobot = true;
-                break;
-            }
-        }
-        if (hitRobot)
+        //Detect bullet-robot collisions
+        auto anyHit = std::find_if(Robots.begin(), Robots.end(), [&](const Robot& robot)
+            { return robot.ID() != bullet.Creator && robot.Collides(bullet.Position); });
+
+        //Handle collision
+        if (anyHit != Robots.end())
         {
-            bullet = Bullets.erase(bullet);
-            continue;
+            //Hit robot. Damage it and delete the bullet
+            anyHit->Damage(bullet.Damage);
+            bullet.Alive = false;
         }
-        
-        bullet++;
     }
 
     //Update mines
-    auto mine = Mines.begin();
-    while (mine != Mines.end())
+    for (Mine& mine : Mines)
     {
-        //Delete mines that were detonated last frame
-        if (!mine->Alive)
-        {
-            mine = Mines.erase(mine);
-            continue;
-        }
-
-        //Detect collision with robot
-        bool hitRobot = false;
-        for (Robot& robot : Robots)
-        {
-            if (robot.ID() == mine->Creator)
-                continue; //Don't interact with the creator
-
-            std::array<Vec2<f32>, 3> chassis = robot.GetChassisPoints();
-            if (IsPositionInTriangle(mine->Position, chassis[0], chassis[1], chassis[2]))
-            {
-                //Hit a bot. Detonate mine
-                DetonateMine(*mine);
-                hitRobot = true;
-                break;
-            }
-        }
+        //Detect mine-robot collisions
+        auto anyHit = std::find_if(Robots.begin(), Robots.end(), [&](const Robot& robot)
+            { return robot.ID() != mine.Creator && robot.Collides(mine.Position); });
 
         //Handle collision
-        if (hitRobot)
-            mine = Mines.erase(mine);
-        else
-            mine++;
+        if (anyHit != Robots.end())
+        {
+            DetonateMine(mine);
+            mine.Alive = false;
+        }
     }
+
+    //Erase dead objects
+    EraseIf(Robots, [](const Robot& robot) { return robot.Health <= 0; });
+    EraseIf(Bullets, [](const Bullet& bullet) { return !bullet.Alive; });
+    EraseIf(Mines, [](const Mine& mine) { return !mine.Alive; });
 }
 
 void Arena::Draw(Renderer* renderer)

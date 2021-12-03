@@ -14,6 +14,7 @@ struct Bullet
     Vec2<f32> Direction;
     u64 Creator; //Unique ID of the robot that fired it
     VmValue Damage;
+    bool Alive = true; //False signals the Arena to delete it
 
     const static inline f32 Speed = 5.0f;
     const static inline f32 Length = 20.0f; //Length of the trail line drawn for each bullet
@@ -28,7 +29,7 @@ struct Mine
     Vec2<f32> Position;
     u64 Creator; //Unique ID of the robot that fired it
     VmValue Damage;
-    bool Alive = true;
+    bool Alive = true; //False signals the Arena to delete it
     
     const static inline f32 ExplosionRadius = 10.0f;
     const static inline f32 Size = 4.0f;

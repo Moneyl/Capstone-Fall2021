@@ -33,12 +33,14 @@ public:
     //Path of source file
     const std::string& SourcePath() const { return _sourceFilePath; }
     //Use to uniquely identify a robot
-    u64 ID() { return _id; }
-    Vec2<f32> TurretDirection();
+    u64 ID() const { return _id; }
+    Vec2<f32> TurretDirection() const;
     //Points of the triangle that make up the chassis
-    std::array<Vec2<f32>, 3> GetChassisPoints();
+    std::array<Vec2<f32>, 3> GetChassisPoints() const;
     //Apply damage to the chassis
     void Damage(VmValue damage);
+    //Returns true if the point lies within the chassis
+    bool Collides(const Vec2<f32>& point) const;
 
     //Virtual machine that runs the robots logic program
     std::unique_ptr<VM> Vm = std::unique_ptr<VM>(new VM());
