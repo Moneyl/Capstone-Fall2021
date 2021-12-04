@@ -25,4 +25,7 @@ namespace String
 
     //Returns true if string contains the search string
     bool Contains(std::string_view str, std::string_view search);
+
+    //Returns true if the strings are equal. Case insensitive.
+    bool EqualIgnoreCase(std::string_view str0, std::string_view str1);
 }

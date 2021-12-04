@@ -81,4 +81,11 @@ namespace String
     {
         return str.find(search) != std::string_view::npos;
     }
+
+    bool EqualIgnoreCase(std::string_view str0, std::string_view str1)
+    {
+        std::string str0Lower = String::ToLower(str0);
+        std::string str1Lower = String::ToLower(str1);
+        return str0Lower == str1Lower;
+    }
 }

@@ -1,7 +1,8 @@
 #include "Application.h"
 #include "utility/Platform.h"
-#include "vm/VM.h"
 #include "math/Util.h"
+#include "Config.h"
+#include "vm/VM.h"
 #include <iostream>
 
 bool Application::Run()
@@ -11,6 +12,9 @@ bool Application::Run()
 
 bool Application::Init()
 {
+    //Load config file
+    Config::Get()->Load();
+
     //Initialize SDL resources. Application owns all SDL resources and logic is split into other classes like Input and Renderer
     SDL_SetMainReady();
     if (SDL_Init(SDL_INIT_EVERYTHING) < 0)

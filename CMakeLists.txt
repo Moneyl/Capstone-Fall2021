@@ -13,4 +13,5 @@ set(CMAKE_CXX_EXTENSIONS         OFF)
 
 # Include sub-projects
 add_subdirectory("dependencies/SDL")
+add_subdirectory("dependencies/pugixml")
 add_subdirectory ("src")

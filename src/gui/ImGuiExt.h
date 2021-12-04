@@ -9,6 +9,7 @@ namespace ImGui
 {
     const ImVec4 SecondaryColor = { 0.32f, 0.67f, 1.0f, 1.0f }; //Light blue. Used by LabelAndValue() for value text.
 
+    IMGUI_API bool InputText(const std::string& label, std::string& str, ImGuiInputTextFlags flags = 0, ImGuiInputTextCallback callback = NULL, void* user_data = NULL);
     IMGUI_API void Text(const std::string& text);
     IMGUI_API void TextColored(const std::string& text, const ImVec4& color);
     IMGUI_API void TextUnformatted(const std::string& text);
@@ -16,6 +17,7 @@ namespace ImGui
 
     //Add mouseover tooltip the previously drawn UI element
     void TooltipOnPrevious(const std::string& tooltip, ImFont* font = nullptr);
+
     //Draws (?) with a mouseover tooltip. Useful to place next to other UI elements for explanation.
     void HelpMarker(const std::string& tooltip, ImFont* font = nullptr);
 

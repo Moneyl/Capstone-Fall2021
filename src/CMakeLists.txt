@@ -43,7 +43,9 @@ target_include_directories(CapstoneFall2021 SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/Dependencies/magic_enum/include/
     ${CMAKE_SOURCE_DIR}/Dependencies/nativefiledialog/src/
     ${CMAKE_SOURCE_DIR}/Dependencies/nativefiledialog/src/include/
+    ${CMAKE_SOURCE_DIR}/Dependencies/pugixml/src/
 )
 
 # Set libraries to statically link
 target_link_libraries(CapstoneFall2021 PRIVATE SDL2-static)
+target_link_libraries(CapstoneFall2021 PRIVATE pugixml-static)

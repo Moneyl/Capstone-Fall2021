@@ -1,7 +1,18 @@
 #include "Gui.h"
 #include "Application.h"
 #include "ImGuiExt.h"
+#include "Config.h"
+#include "utility/Filesystem.h"
 #include <imgui.h>
+
+CVar CVar_UIScale("UI Scale", ConfigType::Float,
+    "Scale of the user interface.",
+    ConfigValue(1.0f), //Default value
+    true,  //ShowInSettings
+    false, //IsFolderPath
+    false, //IsFilePath
+    0.5f, 2.0f //Min-max
+);
 
 bool ImGuiDemoVisible = true;
 bool VariablesVisible = true;
@@ -9,6 +20,7 @@ bool StackVisible = true;
 bool DisassemblerVisible = true;
 bool VmStateVisible = true;
 bool RobotListVisible = true;
+bool SettingsVisible = false;
 
 Gui::Gui(Application* app) : _app(app)
 {
@@ -18,6 +30,14 @@ Gui::Gui(Application* app) : _app(app)
 
 void Gui::Update(f32 deltaTime)
 {
+    //Update UI scale if it changed since last frame
+    static f32 lastFrameScale = 1.0f;
+    if (lastFrameScale != CVar_UIScale.Get<f32>())
+    {
+        lastFrameScale = CVar_UIScale.Get<f32>();
+        ImGui::GetIO().FontGlobalScale = lastFrameScale;
+    }
+
     //Draw main menu and docking space
     DrawMainMenuBar();
     if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
@@ -41,6 +61,8 @@ void Gui::Update(f32 deltaTime)
         DrawVmState();
     if (RobotListVisible)
         DrawRobotList();
+    if (SettingsVisible)
+        DrawSettings();
 }
 
 void Gui::DrawMainMenuBar()
@@ -49,6 +71,10 @@ void Gui::DrawMainMenuBar()
     {
         if (ImGui::BeginMenu("File"))
         {
+            if (ImGui::MenuItem("Settings", nullptr, &SettingsVisible))
+            {
+
+            }
             if (ImGui::MenuItem("Exit"))
             {
                 exit(EXIT_SUCCESS);
@@ -429,4 +455,151 @@ void Gui::DrawRobotList()
 void Gui::DrawNoRobotWarning()
 {
     ImGui::TextWrapped(ICON_FA_EXCLAMATION_CIRCLE " Select a robot from the robots list. You can re-open closed windows from 'View' on the main menu bar.");
+}
+
+void Gui::DrawSettings()
+{
+    if (!SettingsVisible)
+        return;
+
+    const std::string title = "Settings";
+    ImGui::OpenPopup(title.c_str());
+    if (ImGui::BeginPopup(title.c_str(), ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDocking))
+    {
+        Fonts* fonts = &_app->Fonts;
+        fonts->Large.Push();
+        ImGui::Text(ICON_FA_COG " Settings");
+        fonts->Large.Pop();
+        ImGui::Separator();
+
+        //Draw settings
+        Config* config = Config::Get();
+        for (CVar* var : CVar::Instances)
+        {
+            //Only draw settings with <ShowInSettings>True</ShowInSettings>
+            if (!var->ShowInSettings)
+                continue;
+
+            auto drawTooltip = [&]()
+            {
+                ImGui::TooltipOnPrevious(var->Description, fonts->Default.GetPtr());
+            };
+
+            switch (var->Type)
+            {
+            case ConfigType::Int:
+                if (var->Min && var->Max) //User slider if min-max is provided
+                {
+                    i32 min = (i32)var->Min.value();
+                    i32 max = (i32)var->Max.value();
+                    if (ImGui::SliderInt(var->Name.c_str(), &var->Get<i32>(), min, max))
+                        config->Save();
+                }
+                else
+                {
+                    if (ImGui::InputInt(var->Name.c_str(), &var->Get<i32>()))
+                        config->Save();
+
+                }
+                drawTooltip();
+                break;
+            case ConfigType::Uint:
+                if (var->Min && var->Max) //User slider if min-max is provided
+                {
+                    u32 min = (u32)var->Min.value();
+                    u32 max = (u32)var->Max.value();
+                    if (ImGui::SliderScalar(var->Name.c_str(), ImGuiDataType_U32, (void*)&var->Get<u32>(), (void*)&min, (void*)&max))
+                        config->Save();
+                }
+                else
+                {
+                    if (ImGui::InputScalar(var->Name.c_str(), ImGuiDataType_U32, &var->Get<u32>()))
+                        config->Save();
+                }
+                drawTooltip();
+                break;
+            case ConfigType::Float:
+                if (var->Min && var->Max) //User slider if min-max is provided
+                {
+                    if (ImGui::SliderFloat(var->Name.c_str(), (f32*)&var->Get<f32>(), var->Min.value(), var->Max.value()))
+                        config->Save();
+                }
+                else
+                {
+                    if (ImGui::InputFloat(var->Name.c_str(), &var->Get<f32>()))
+                        config->Save();
+                }
+                drawTooltip();
+                break;
+            case ConfigType::Bool:
+                if (ImGui::Checkbox(var->Name.c_str(), &var->Get<bool>()))
+                    config->Save();
+
+                drawTooltip();
+                break;
+            case ConfigType::String:
+                if (var->IsFilePath)
+                {
+                    ImGui::LabelAndValue(var->Name, var->Get<std::string>());
+                    drawTooltip();
+                    ImGui::SameLine();
+                    if (ImGui::Button("Browse..."))
+                    {
+                        std::optional<std::string> output = OpenFile();
+                        if (output)
+                        {
+                            var->Value = output.value();
+                            config->Save();
+                        }
+                    }
+                }
+                else if (var->IsFolderPath)
+                {
+                    ImGui::LabelAndValue(var->Name, var->Get<std::string>());
+                    drawTooltip();
+                    ImGui::SameLine();
+                    if (ImGui::Button("Browse..."))
+                    {
+                        std::optional<std::string> output = OpenFolder();
+                        if (output)
+                        {
+                            var->Value = output.value();
+                            config->Save();
+                        }
+                    }
+                }
+                else
+                {
+                    if (ImGui::InputText(var->Name, var->Get<std::string>()))
+                        config->Save();
+
+                    drawTooltip();
+                }
+                break;
+            case ConfigType::List:
+                if (ImGui::BeginListBox(var->Name.c_str()))
+                {
+                    drawTooltip();
+                    std::vector<std::string> & values = var->Get<std::vector<std::string>>();
+                    for (std::string& value : values)
+                        if (ImGui::InputText("##ListBoxItem" + std::to_string((u64)var), value))
+                            config->Save();
+
+                    ImGui::EndListBox();
+                }
+                break;
+            case ConfigType::Invalid:
+            default:
+                break;
+            }
+        }
+
+        if (ImGui::Button("Close"))
+        {
+            SettingsVisible = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }
