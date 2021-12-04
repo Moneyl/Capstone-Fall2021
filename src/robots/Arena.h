@@ -32,7 +32,7 @@ struct Mine
     bool Alive = true; //False signals the Arena to delete it
     
     const static inline f32 ExplosionRadius = 10.0f;
-    const static inline f32 Size = 4.0f;
+    const static inline f32 Size = 5.0f;
 };
 
 //Owns and updates all objects in the arena (e.g. robots, mines, bullets, etc)

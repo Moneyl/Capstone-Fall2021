@@ -35,7 +35,11 @@ public:
     void DrawRectangle(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
     void DrawRectangleCentered(const Vec2<f32>& center, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
     void DrawRectangleFilled(const Vec2<f32>& min, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
+    void DrawRectangleFilledCentered(const Vec2<f32>& center, const Vec2<f32>& size, const Vec4<u8>& color = ColorWhite);
     void DrawTriangle(const Vec2<f32>& pos, f32 size, f32 angle, const Vec4<u8>& color = ColorWhite);
+    void DrawArc(const Vec2<f32>& start, f32 length, f32 angleDegrees, f32 widthDegrees, const Vec4<u8>& color = ColorWhite, const u32 numPoints = 10);
+    void DrawCircle(const Vec2<f32>& position, f32 radius, const Vec4<u8>& color = ColorWhite, const u32 numPoints = 30);
+    void DrawPoint(const Vec2<f32>& pos, f32 size, const Vec4<u8>& color = ColorWhite);
 
 private:
     void InitImGui();

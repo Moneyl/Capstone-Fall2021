@@ -82,7 +82,7 @@ void Arena::Draw(Renderer* renderer)
         renderer->DrawLine(bullet.Position, bullet.Position + bullet.Direction * Bullet::Length, { 255, 0, 0, 255 });
 
     for (Mine& mine : Mines)
-        renderer->DrawRectangleCentered(mine.Position, { Mine::Size, Mine::Size }, { 255, 0, 0, 255 });
+        renderer->DrawRectangleFilledCentered(mine.Position, { Mine::Size, Mine::Size }, { 255, 0, 0, 255 });
 }
 
 void Arena::Reset()

@@ -107,6 +107,12 @@ void Renderer::DrawRectangleFilled(const Vec2<f32>& min, const Vec2<f32>& size, 
     SDL_RenderFillRectF(_renderer, &rect);
 }
 
+void Renderer::DrawRectangleFilledCentered(const Vec2<f32>& center, const Vec2<f32>& size, const Vec4<u8>& color)
+{
+    const Vec2<f32> min = center - (size / 2.0f);
+    DrawRectangleFilled(min, size, color);
+}
+
 void Renderer::DrawTriangle(const Vec2<f32>& pos, f32 size, f32 angle, const Vec4<u8>& color)
 {
     //Calculate points
@@ -125,6 +131,55 @@ void Renderer::DrawTriangle(const Vec2<f32>& pos, f32 size, f32 angle, const Vec
     SDL_RenderDrawLineF(_renderer, p0.x, p0.y, p1.x, p1.y);
     SDL_RenderDrawLineF(_renderer, p1.x, p1.y, p2.x, p2.y);
     SDL_RenderDrawLineF(_renderer, p2.x, p2.y, p0.x, p0.y);
+}
+
+void Renderer::DrawArc(const Vec2<f32>& start, f32 length, f32 angleDegrees, f32 widthDegrees, const Vec4<u8>& color, const u32 numPoints)
+{
+    const f32 angleRadians = ToRadians(angleDegrees);
+    const f32 widthRadians = ToRadians(widthDegrees);
+    const f32 startAngleRadians = angleRadians - widthRadians / 2.0f;
+    auto CalculateArcPoint = [&](f32 angle) -> Vec2<f32>
+    {
+        return start + Vec2<f32>(cos(angle), sin(angle)) * length;
+    };
+
+    //Draw arc
+    Vec2<f32> last = start;
+    Vec2<f32> current = CalculateArcPoint(startAngleRadians);
+    for (u32 i = 0; i < numPoints; i++)
+    {
+        DrawLine(last, current, color);
+        last = current;
+        current = CalculateArcPoint(startAngleRadians + i * (widthRadians / numPoints));
+    }
+    DrawLine(last, current, color);
+    DrawLine(current, start, color);
+}
+
+void Renderer::DrawCircle(const Vec2<f32>& position, f32 radius, const Vec4<u8>& color, const u32 numPoints)
+{
+    const f32 angleTotalRadians = ToRadians(360.0f);
+    const f32 anglePerStepRadians = angleTotalRadians / numPoints;
+    auto CalculatePoint = [&](f32 angle) -> Vec2<f32>
+    {
+        return position + Vec2<f32>(cos(angle), sin(angle)) * radius;
+    };
+
+    const Vec2<f32> first = CalculatePoint(0.0f);
+    Vec2<f32> last = first;
+    Vec2<f32> current = CalculatePoint(anglePerStepRadians);
+    for (u32 i = 2; i <= numPoints; i++)
+    {
+        DrawLine(last, current, color);
+        last = current;
+        current = CalculatePoint(i * anglePerStepRadians);
+    }
+    DrawLine(last, first, color);
+}
+
+void Renderer::DrawPoint(const Vec2<f32>& pos, f32 size, const Vec4<u8>& color)
+{
+    DrawRectangleFilledCentered(pos, { size, size }, color);
 }
 
 void Renderer::InitImGui()

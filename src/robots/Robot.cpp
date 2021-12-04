@@ -95,11 +95,10 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
 
 void Robot::Draw(Renderer* renderer)
 {
-    //Chassis
-    renderer->DrawTriangle(Position, Robot::ChassisSize, Angle, { 0, 127, 0, 255 });
-
-    //Turret
-    renderer->DrawLine(Position, Position + TurretDirection() * Robot::TurretLength, ColorWhite);
+    renderer->DrawTriangle(Position, Robot::ChassisSize, Angle, { 0, 127, 0, 255 }); //Chassis
+    renderer->DrawLine(Position, Position + TurretDirection() * Robot::TurretLength, ColorWhite); //Turret
+    renderer->DrawArc(Position, 200.0f, Angle, 110.0f, ColorWhite, 10); //Scanner arc
+    renderer->DrawCircle(Position, 130.0f, ColorWhite);
 }
 
 void Robot::LoadProgramFromSource(std::string_view inFilePath)
