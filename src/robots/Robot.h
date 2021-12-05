@@ -59,10 +59,22 @@ public:
     static const inline f32 MineLayerFrequency = 1.0f / 2.0f; //Max mines that can be laid per second
     static const inline f32 ChassisSize = 10.0f;
     static const inline VmValue MaxMines = 10; //Todo: Make this configurable with #config directives
+    static const inline f32 RadarSonarRange = 150.0f;
+    static const inline f32 RadarSonarFrequency = 1.0f / 3.0f;
+    static const inline f32 ScannerFrequency = 1.0f / 3.0f;
 private:
     std::filesystem::file_time_type _sourceFileLastWriteTime;
     std::string _sourceFilePath;
     u64 _id;
     f32 _turretShootTimer = 0.0f; //Limits turret fire rate
     f32 _mineLayerTimer = 0.0f; //Limits mine layer rate
+    f32 _radarTimer = 0.0f;
+    f32 _sonarTimer = 0.0f;
+    f32 _scannerTimer = 0.0f;
+    f32 _scannerArcWidth = 32.0f; //[0, 64]
+
+    //True if the hardware was used this frame. Used by renderer to draw circles/arcs/etc.
+    bool _sonarOn = false;
+    bool _radarOn = false;
+    bool _scannerOn = false;
 };

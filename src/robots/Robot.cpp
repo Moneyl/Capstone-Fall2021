@@ -90,15 +90,83 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
                         arena.DetonateMine(mine);
             }
         }
+
+        //Sonar, radar, and scanner
+        {
+            //Find closest bot
+            Robot* closestBot = arena.GetClosestRobot(Position, this);
+            f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
+
+            VmValue& sonar = GetPort(Port::Sonar);
+            if (sonar != 0 && _sonarTimer >= RadarSonarFrequency)
+            {
+                //Todo: Consider implementing the ipo/opo instructions or equivalent so users can determine which register to write the output to
+                if (closestBot && closestBotDistance <= RadarSonarRange)
+                {
+                    //Write heading of nearest bot to r7
+                    const Vec2<f32> dir = (closestBot->Position - Position).Normalized();
+                    Vm->Registers[7] = dir.AngleUnitDegrees();
+                }
+                _sonarTimer = 0.0f;
+                _sonarOn = true;
+            }
+            else
+            {
+                _sonarTimer += timePerCycle;
+            }
+
+            VmValue& radar = GetPort(Port::Radar);
+            if (radar != 0 && _radarTimer >= RadarSonarFrequency)
+            {
+                //Write distance of nearest bot to r7
+                if (closestBot && closestBotDistance <= RadarSonarRange)
+                    Vm->Registers[7] = (closestBot->Position - Position).Length();
+
+                _radarTimer = 0.0f;
+                _radarOn = true;
+            }
+            else
+            {
+                _radarTimer += timePerCycle;
+            }
+
+            VmValue& scanner = GetPort(Port::Scanner);
+            if (scanner != 0 && _scannerTimer >= ScannerFrequency)
+            {
+                //Trigger scanner, write range of nearest target to r7
+                Robot* closestBotArc = arena.GetClosestRobot(Position, this, ToRadians(Angle - _scannerArcWidth), ToRadians(Angle + _scannerArcWidth));
+                if (closestBotArc)
+                    Vm->Registers[7] = (closestBotArc->Position - Position).Length();
+
+                _scannerTimer = 0.0f;
+                _scannerOn = true;
+            }
+            else
+            {
+                _scannerTimer += timePerCycle;
+            }
+
+            VmValue& scannerArc = GetPort(Port::ScannerArc);
+            if(scannerArc != 0)
+            {
+                _scannerArcWidth = std::min((f32)scannerArc, 64.0f);
+            }
+        }
     }
 }
 
 void Robot::Draw(Renderer* renderer)
 {
     renderer->DrawTriangle(Position, Robot::ChassisSize, Angle, { 0, 127, 0, 255 }); //Chassis
-    renderer->DrawLine(Position, Position + TurretDirection() * Robot::TurretLength, ColorWhite); //Turret
-    renderer->DrawArc(Position, 200.0f, Angle, 110.0f, ColorWhite, 10); //Scanner arc
-    renderer->DrawCircle(Position, 130.0f, ColorWhite);
+    renderer->DrawLine(Position, Position + (TurretDirection() * Robot::TurretLength), ColorWhite); //Turret
+    if (_sonarOn || _radarOn)
+        renderer->DrawCircle(Position, RadarSonarRange, ColorWhite); //Sonar/radar arc
+    if (_scannerOn)
+        renderer->DrawArc(Position, 200.0f, Angle, _scannerArcWidth, ColorWhite, 10); //Scanner arc
+
+    _sonarOn = false;
+    _radarOn = false;
+    _scannerOn = false;
 }
 
 void Robot::LoadProgramFromSource(std::string_view inFilePath)
@@ -139,8 +207,10 @@ VmValue& Robot::GetPort(Port port)
 
 Vec2<f32> Robot::TurretDirection() const
 {
-    const f32 turretAngleRadians = ToRadians(TurretAngle);
-    return Vec2<f32>(cos(turretAngleRadians), sin(turretAngleRadians)).Normalized();
+    //Todo: Fix whatever is going wrong here. For some reason this isn't calculating the correct turret angle, but the inverse of it.
+    //      Short term workaround is to subtract it from 360 to flip the axis
+    const f32 turretAngleRadians = ToRadians(360.0f - TurretAngle);
+    return Vec2<f32>(cos(turretAngleRadians), sin(turretAngleRadians));
 }
 
 std::array<Vec2<f32>, 3> Robot::GetChassisPoints() const

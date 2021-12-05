@@ -17,6 +17,10 @@ enum class Port
     TurretRotateAbsolute = sizeof(VmValue) * 6,
     MineLayer = sizeof(VmValue) * 7,
     MineTrigger = sizeof(VmValue) * 8,
+    Sonar = sizeof(VmValue) * 9,
+    Radar = sizeof(VmValue) * 10,
+    Scanner = sizeof(VmValue) * 11,
+    ScannerArc = sizeof(VmValue) * 12,
     NumPorts = 8,
 };
 
@@ -33,6 +37,10 @@ static std::unordered_map<std::string_view, VmValue> BuiltInConstants =
     { "P_TURRET_ABS", (VmValue)Port::TurretRotateAbsolute },
     { "P_MINELAYER", (VmValue)Port::MineLayer },
     { "P_MINETRIGGER", (VmValue)Port::MineTrigger },
+    { "P_SONAR", (VmValue)Port::Sonar },
+    { "P_RADAR", (VmValue)Port::Radar },
+    { "P_SCANNER", (VmValue)Port::Scanner },
+    { "P_SCAN_ARC", (VmValue)Port::ScannerArc },
 
     //Interrupts
 

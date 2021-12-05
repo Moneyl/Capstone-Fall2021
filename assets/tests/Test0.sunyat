@@ -1,35 +1,9 @@
 
 ;;; Test0.sunyat
-;;; Tests out various instructions, labels, variables, and the stack
-
-; Basic variable and stack test
-load r0 a
-push r0
-pop r1
-
-; Testing reading/writing by memory address using constant. This is how ports work.
-const one 1
-add r2 one
-
-mov r4 P_HEAT
-mov r5 P_SPEDOMETER
+;;; Uses sonar to detect nearby robots and shoot them
 
 mov r6 1
+store P_SONAR r6
+store P_TURRET_ABS r7
+mov r6 1
 store P_SHOOT r6
-mov r6 100
-store P_TURRET_OFS r6 ; Keep rotating turret counter clockwise
-
-; Defining these at the end to ensure variable definition order doesn't matter. Not recommended for clean code.
-var a 2
-var x_1234 -99
-var _my_var10 15000
-
-;Expected result:
-;    r0: 2
-;    r1: 2
-;    r2: 32
-;    r3: 15000 initially, increases by 1 each loop
-;    r4: 0
-;    r5: 0
-;    r6: 0
-;    r7: 0

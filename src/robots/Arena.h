@@ -1,6 +1,7 @@
 #pragma once
 #include "Typedefs.h"
 #include "Robot.h"
+#include "Math/Util.h"
 
 class Renderer;
 
@@ -45,6 +46,8 @@ public:
     void CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, VmValue damage = 1);
     void CreateMine(const Vec2<f32>& position, u64 creator, VmValue damage = 1);
     void DetonateMine(Mine& mine);
+    //Get closest robot to a position. Can optionally exclude a single robot exclude robots outside a specific arc
+    Robot* GetClosestRobot(const Vec2<f32>& position, Robot* exclude = nullptr, f32 angleMinRadians = 0.0f, f32 angleMaxRadians = 2 * PI);
 
     Vec2<f32> Position = { 400.0f, 50.0f };
     Vec2<f32> Size = { 1000.0f, 1000.0f };

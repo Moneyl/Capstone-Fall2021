@@ -136,7 +136,7 @@ void Renderer::DrawTriangle(const Vec2<f32>& pos, f32 size, f32 angle, const Vec
 void Renderer::DrawArc(const Vec2<f32>& start, f32 length, f32 angleDegrees, f32 widthDegrees, const Vec4<u8>& color, const u32 numPoints)
 {
     const f32 angleRadians = ToRadians(angleDegrees);
-    const f32 widthRadians = ToRadians(widthDegrees);
+    const f32 widthRadians = ToRadians(std::min(widthDegrees, 360.0f));
     const f32 startAngleRadians = angleRadians - widthRadians / 2.0f;
     auto CalculateArcPoint = [&](f32 angle) -> Vec2<f32>
     {

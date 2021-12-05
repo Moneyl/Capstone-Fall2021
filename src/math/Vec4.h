@@ -1,6 +1,5 @@
 #pragma once
 #include "Typedefs.h"
-#include "vm/Instruction.h"
 #include <type_traits>
 
 //4D vector. Can use any arithmetic type for it's components.

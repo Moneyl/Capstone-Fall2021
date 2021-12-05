@@ -129,3 +129,26 @@ void Arena::DetonateMine(Mine& mine)
     
     mine.Alive = false;
 }
+
+Robot* Arena::GetClosestRobot(const Vec2<f32>& position, Robot* exclude, f32 angleMinRadians, f32 angleMaxRadians)
+{
+    f32 distance = std::numeric_limits<f32>::infinity();
+    Robot* out = nullptr;
+    for (Robot& robot : Robots)
+    {
+        f32 angle = (robot.Position - position).Normalized().AngleUnitRadians();
+        if (angle < angleMinRadians || angle > angleMaxRadians)
+            continue; //Outside of search arc
+        if (&robot == exclude)
+            continue;
+
+        f32 curDist = robot.Position.Distance(position);
+        if (curDist < distance)
+        {
+            distance = curDist;
+            out = &robot;
+        }
+    }
+
+    return out;
+}
