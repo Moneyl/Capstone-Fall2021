@@ -48,7 +48,8 @@ public:
     f32 Angle = 0; //Robot chassis angle in degress
     f32 Speed = 0; //Current speed
     f32 TurretAngle = 0;
-    f32 Health = 10;
+    f32 Health = MaxHealth;
+    f32 Heat = 0.0f;
     VmValue NumMines = MaxMines;
 
     //Set to true when an error occurs. If true ::Update() is stopped until the error is resolved.
@@ -62,6 +63,12 @@ public:
     static const inline f32 RadarSonarRange = 150.0f;
     static const inline f32 RadarSonarFrequency = 1.0f / 3.0f;
     static const inline f32 ScannerFrequency = 1.0f / 3.0f;
+    static const inline f32 HeatsinkCapacity = 1.0f;
+    static const inline f32 MaxHeat = 10.0f;
+    static const inline f32 HeatDamageThreshold = 6.0f;
+    static const inline f32 OverHeatDamageFrequency = 0.25f;
+    static const inline f32 HeatPerTurretShot = 0.25f;
+    static const inline f32 MaxHealth = 10.0f;
 private:
     std::filesystem::file_time_type _sourceFileLastWriteTime;
     std::string _sourceFilePath;

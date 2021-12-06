@@ -57,6 +57,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
             if (shoot != 0 && _turretShootTimer >= TurretShootFrequency)
             {
                 arena.CreateBullet(Position, TurretDirection(), ID());
+                Heat += HeatPerTurretShot;
                 _turretShootTimer = 0.0f;
                 shoot = 0;
             }
@@ -147,9 +148,19 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
             }
 
             VmValue& scannerArc = GetPort(Port::ScannerArc);
-            if(scannerArc != 0)
+            if (scannerArc != 0)
             {
                 _scannerArcWidth = std::min((f32)scannerArc, 64.0f);
+            }
+        }
+
+        //Heatsink
+        {
+            Heat -= HeatsinkCapacity * timePerCycle;
+            Heat = std::max(0.0f, Heat);
+            if (Heat >= HeatDamageThreshold)
+            {
+                Health -= OverHeatDamageFrequency * timePerCycle;
             }
         }
     }
