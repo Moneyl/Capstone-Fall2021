@@ -434,20 +434,54 @@ void Gui::DrawRobotList()
     _app->Fonts.Large.Pop();
     ImGui::Separator();
 
-    if (ImGui::BeginChild("RobotsList", { 0, 0 }, true, ImGuiWindowFlags_AlwaysVerticalScrollbar))
+    //Disable borders and change background color for robot list
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+    ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
+
+    //Draw robot list
+    if (ImGui::BeginListBox("##RobotsList", { -FLT_MIN, ImGui::GetWindowWidth() }))
     {
         for (u32 i = 0; i < _app->Arena.Robots.size(); i++)
         {
             Robot& robot = _app->Arena.Robots[i];
             std::string label = "Robot " + std::to_string(i) + " - " + std::filesystem::path(robot.SourcePath()).filename().string();
             bool selected = (i == _robotIndex);
-            if (ImGui::Selectable(label.c_str(), &selected))
+
+            //Draw selectable box for robot
+            ImVec2 cursorPos = ImGui::GetCursorPos();
+            if (ImGui::Selectable(label.c_str(), &selected, 0, { ImGui::GetWindowWidth(), 75.0f }))
             {
                 _robotIndex = i;
             }
+            ImVec2 endCursorPos = ImGui::GetCursorPos();
+
+            //Draw stats within selectable box
+            ImVec2 progressBarSize = { -FLT_MIN, 20.0f };
+            cursorPos.y += ImGui::GetTextLineHeight();
+            cursorPos.y += ImGui::GetStyle().ItemSpacing.y;
+            ImGui::SetCursorPos(cursorPos);
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+            //Health
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.259f, 0.6f, 0.114f, 1.0f });
+            ImGui::ProgressBar(robot.Health / robot.MaxHealth, progressBarSize, "Health");
+            ImGui::PopStyleColor();
+
+            //Heat
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.6f, 0.145f, 0.114f, 1.0f });
+            ImGui::ProgressBar(robot.Heat / robot.MaxHeat, progressBarSize, "Heat");
+            ImGui::PopStyleColor();
+
+            //Set cursor to end of the selectable
+            ImGui::SetCursorPos(endCursorPos);
+            if (i != _app->Arena.Robots.size() - 1)
+                ImGui::Separator();
         }
+
+        ImGui::EndListBox();
     }
-    ImGui::EndChild();
+    ImGui::PopStyleColor();
+    ImGui::PopStyleVar();
 
     ImGui::End();
 }
