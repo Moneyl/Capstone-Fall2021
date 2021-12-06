@@ -40,11 +40,14 @@ public:
     //Apply damage to the chassis
     void Damage(VmValue damage);
     //Returns true if the point lies within the chassis
-    bool Collides(const Vec2<f32>& point) const;
+    bool PointInChassis(const Vec2<f32>& point) const;
+    //Returns true if the robot chassis lies within the rectangle
+    bool ChassisInRectangle(const Vec2<f32>& rectPos, const Vec2<f32>& rectSize) const;
 
     //Virtual machine that runs the robots logic program
     std::unique_ptr<VM> Vm = std::unique_ptr<VM>(new VM());
     Vec2<f32> Position = { 0, 0 }; //Robot position in arena
+    Vec2<f32> LastPosition = { 0, 0 };
     f32 Angle = 0; //Robot chassis angle in degress
     f32 Speed = 0; //Current speed
     f32 TurretAngle = 0;

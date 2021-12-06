@@ -34,6 +34,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
             Speed = spedometer;
 
             const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
+            LastPosition = Position;
             Position += direction * Speed * timePerCycle;
         }
         
@@ -240,8 +241,16 @@ void Robot::Damage(VmValue damage)
         Health -= damage;
 }
 
-bool Robot::Collides(const Vec2<f32>& point) const
+bool Robot::PointInChassis(const Vec2<f32>& point) const
 {
     const std::array<Vec2<f32>, 3> chassis = GetChassisPoints();
     return IsPositionInTriangle(point, chassis[0], chassis[1], chassis[2]);
+}
+
+bool Robot::ChassisInRectangle(const Vec2<f32>& rectPos, const Vec2<f32>& rectSize) const
+{
+    const std::array<Vec2<f32>, 3> chassis = GetChassisPoints();
+    return IsPositionInRect(chassis[0], rectPos, rectSize) &&
+           IsPositionInRect(chassis[1], rectPos, rectSize) &&
+           IsPositionInRect(chassis[2], rectPos, rectSize);
 }

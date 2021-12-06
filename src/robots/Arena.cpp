@@ -27,6 +27,15 @@ void Arena::Update(f32 deltaTime)
                 robot.TryReload();
 
             robot.Update(*this, cyclesDelta, cyclesToExecute);
+
+            //Push out of bounds bot back into the arena
+            u64 substepCount = 0;
+            const Vec2<f32> velocity = (robot.Position - robot.LastPosition);
+            while (!robot.ChassisInRectangle(Position, Size) && substepCount < Arena::MaxRobotCollisionSubsteps)
+            {
+                robot.Position -= velocity;
+                substepCount++;
+            }
         }
     }
 
@@ -39,7 +48,7 @@ void Arena::Update(f32 deltaTime)
 
         //Detect bullet-robot collisions
         auto anyHit = std::find_if(Robots.begin(), Robots.end(), [&](const Robot& robot)
-            { return robot.ID() != bullet.Creator && robot.Collides(bullet.Position); });
+            { return robot.ID() != bullet.Creator && robot.PointInChassis(bullet.Position); });
 
         //Handle collision
         if (anyHit != Robots.end())
@@ -55,7 +64,7 @@ void Arena::Update(f32 deltaTime)
     {
         //Detect mine-robot collisions
         auto anyHit = std::find_if(Robots.begin(), Robots.end(), [&](const Robot& robot)
-            { return robot.ID() != mine.Creator && robot.Collides(mine.Position); });
+            { return robot.ID() != mine.Creator && robot.PointInChassis(mine.Position); });
 
         //Handle collision
         if (anyHit != Robots.end())
@@ -90,7 +99,7 @@ void Arena::Reset()
     Robots.clear();
 
     //Create robots
-    Vec2<i32> arenaCenter = Position + (Size / 2);
+    Vec2<f32> arenaCenter = Position + (Size / 2);
     Robot& robot = Robots.emplace_back();
     robot.LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
     robot.Position.x = arenaCenter.x;
