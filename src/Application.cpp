@@ -24,7 +24,7 @@ bool Application::Init()
     }
 
     //Create window + render surface
-    _window = SDL_CreateWindow("SDL_ImGui_Testing", 50, 50, _windowWidth, _windowHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    _window = SDL_CreateWindow("SDL_ImGui_Testing", 50, 50, _windowWidth, _windowHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_MAXIMIZED);
     if (!_window)
     {
         std::cerr << "SDL failed to create window. Error: " << SDL_GetError() << "\n";
