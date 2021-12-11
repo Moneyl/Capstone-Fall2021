@@ -50,6 +50,8 @@ const std::vector<TokenizerRule> Tokenizer::Rules =
     Match(Token::Store, "store"),
     Match(Token::Push, "push"),
     Match(Token::Pop, "pop"),
+    Match(Token::Ipo, "ipo"),
+    Match(Token::Opo, "opo"),
     Match(Token::Register0, "r0"),
     Match(Token::Register1, "r1"),
     Match(Token::Register2, "r2"),

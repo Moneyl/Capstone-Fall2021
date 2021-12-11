@@ -26,11 +26,11 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
         //Update robot hardware
         //Movement
         {
-            const VmValue& steering = GetPort(Port::Steering);
+            const VmValue& steering = Vm->GetPort(Port::Steering);
             Angle += steering * timePerCycle;
             TurretAngle += steering * timePerCycle; //Turret rotates with the chassis
 
-            const VmValue& spedometer = GetPort(Port::Spedometer);
+            const VmValue& spedometer = Vm->GetPort(Port::Spedometer);
             Speed = spedometer;
 
             const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
@@ -40,21 +40,21 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
         
         //Turret
         {
-            VmValue& rotateOffset = GetPort(Port::TurretRotateOffset);
+            VmValue& rotateOffset = Vm->GetPort(Port::TurretRotateOffset);
             if (rotateOffset != 0)
             {
                 TurretAngle += rotateOffset * timePerCycle;
                 rotateOffset = 0;
             }
             
-            VmValue& rotateAbsolute = GetPort(Port::TurretRotateAbsolute);
+            VmValue& rotateAbsolute = Vm->GetPort(Port::TurretRotateAbsolute);
             if (rotateAbsolute != std::numeric_limits<VmValue>::max())
             {
                 TurretAngle = rotateAbsolute;
                 rotateAbsolute = std::numeric_limits<VmValue>::max(); //Special value for this port to signal that it's not set
             }
 
-            VmValue& shoot = GetPort(Port::TurretShoot);
+            VmValue& shoot = Vm->GetPort(Port::TurretShoot);
             if (shoot != 0 && _turretShootTimer >= TurretShootFrequency)
             {
                 arena.CreateBullet(Position, TurretDirection(), ID());
@@ -71,7 +71,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
         //Mine layer & detonator
         {
             //Lay mines
-            VmValue& mineLayer = GetPort(Port::MineLayer);
+            VmValue& mineLayer = Vm->GetPort(Port::MineLayer);
             if (mineLayer != 0 && NumMines > 0 && _mineLayerTimer >= MineLayerFrequency)
             {
                 arena.CreateMine(Position, ID());
@@ -84,7 +84,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
             }
 
             //Detonate laid mines
-            VmValue& mineTrigger = GetPort(Port::MineTrigger);
+            VmValue& mineTrigger = Vm->GetPort(Port::MineTrigger);
             if (mineTrigger != 0)
             {
                 for (Mine& mine : arena.Mines)
@@ -99,7 +99,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
             Robot* closestBot = arena.GetClosestRobot(Position, this);
             f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
 
-            VmValue& sonar = GetPort(Port::Sonar);
+            VmValue& sonar = Vm->GetPort(Port::Sonar);
             if (sonar != 0 && _sonarTimer >= RadarSonarFrequency)
             {
                 //Todo: Consider implementing the ipo/opo instructions or equivalent so users can determine which register to write the output to
@@ -117,7 +117,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
                 _sonarTimer += timePerCycle;
             }
 
-            VmValue& radar = GetPort(Port::Radar);
+            VmValue& radar = Vm->GetPort(Port::Radar);
             if (radar != 0 && _radarTimer >= RadarSonarFrequency)
             {
                 //Write distance of nearest bot to r7
@@ -132,7 +132,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
                 _radarTimer += timePerCycle;
             }
 
-            VmValue& scanner = GetPort(Port::Scanner);
+            VmValue& scanner = Vm->GetPort(Port::Scanner);
             if (scanner != 0 && _scannerTimer >= ScannerFrequency)
             {
                 //Trigger scanner, write range of nearest target to r7
@@ -148,7 +148,7 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
                 _scannerTimer += timePerCycle;
             }
 
-            VmValue& scannerArc = GetPort(Port::ScannerArc);
+            VmValue& scannerArc = Vm->GetPort(Port::ScannerArc);
             if (scannerArc != 0)
             {
                 _scannerArcWidth = std::min((f32)scannerArc, 64.0f);
@@ -210,11 +210,6 @@ void Robot::TryReload()
         Vm = std::move(newVM);
         printf("Recompiled robot '%s'\n", sourceFileName.c_str());
     }
-}
-
-VmValue& Robot::GetPort(Port port)
-{
-    return *(VmValue*)(&Vm->Memory[(VmValue)port]);
 }
 
 Vec2<f32> Robot::TurretDirection() const

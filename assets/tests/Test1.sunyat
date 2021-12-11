@@ -9,8 +9,7 @@ const MOVE_DURATION 50 ; How long to move in one direction before moving in the 
 ; Increment r0 forever
 !main
 add r0 1
-mov r2 TURN_RATE
-store P_STEERING r2 ; Constant turning
+opo P_STEERING TURN_RATE ; Constant turning
 
 ; if r0 > 15 then move forward,
 cmp r0 MOVE_DURATION
@@ -29,19 +28,15 @@ jmp !main
 
 ; Move forward & turn clockwise
 !forward
-mov r2 MOVE_SPEED
-store P_SPEDOMETER r2
+opo P_SPEDOMETER MOVE_SPEED
 jmp !reset_check
 
 ; Move backwards & turn counter clockwise
 !backward
 mov r2 MOVE_SPEED
 neg r2
-store P_SPEDOMETER r2
-mov r2 1
-store P_SHOOT r2
-mov r2 0
-store P_TURRET_ABS r2 ; Keep turret facing east when going backwards
-mov r2 0xFFFF
-store P_MINELAYER r2
+opo P_SPEDOMETER r2
+opo P_SHOOT 1
+opo P_TURRET_ABS 0 ; Keep turret facing east when going backwards
+opo P_MINELAYER 0xFFFF
 jmp !reset_check

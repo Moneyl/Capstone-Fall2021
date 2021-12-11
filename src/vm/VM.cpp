@@ -92,10 +92,9 @@ Result<void, VMError> VM::Cycle()
         _instruction = (Instruction*)(&Memory[PC]);
 
         //Get number of cycles the instruction takes to execute
-        auto search = InstructionTimes.find((Opcode)_instruction->Op.Opcode);
-        if (search == InstructionTimes.end())
-            return Error(VMError{ VMErrorCode::UnsupportedInstruction, "Unsupported opcode '" + std::to_string((u32)_instruction->Op.Opcode) + "' decoded by VM." });
-        _instructionCyclesRemaining = search->second;
+        _instructionCyclesRemaining = GetInstructionDuration(*_instruction);
+        if (_instructionCyclesRemaining == 0xFFFFFFFF)
+            return Error(VMError{ VMErrorCode::UnsupportedInstruction, "Failed to get instruction duration in VM. Opcode: " + std::to_string((u32)_instruction->Op.Opcode) });
 
         if (_instructionCyclesRemaining <= 1) //Execute the instruction now if it takes 1 cycle
         {
@@ -263,6 +262,16 @@ Result<void, VMError> VM::Execute()
         //Pop a value off the stack and store it in register A
         Registers[regA] = Pop();
         break;
+    case Opcode::Ipo:
+        Registers[regA] = GetPort((Port)value); //Value contains the port index. Set via the built in port constants
+        break;
+    case Opcode::Opo:
+        GetPort((Port)value) = Registers[regA]; //Set port with value of a register
+        break;
+    case Opcode::OpoVal:
+        //This instruction uses different encoding than the rest to fit the opcode, port index, and value in 32 bits
+        GetPort((Port)_instruction->OpPortValue.Port) = _instruction->OpPortValue.Value; //Set port with value
+        break;
     default:
         return Error(VMError{ VMErrorCode::UnsupportedInstruction, "Unsupported opcode '" + std::to_string((u32)_instruction->Op.Opcode) + "' decoded by VM." });
     }
@@ -312,4 +321,45 @@ void VM::SetFlags(VmValue result)
 {
     FlagZero = (result == 0);
     FlagSign = (result < 0);
+}
+
+VmValue& VM::GetPort(Port port)
+{
+    VmValue address = (VmValue)port * sizeof(VmValue);
+    return *(VmValue*)(&Memory[address]);
+}
+
+u32 VM::GetInstructionDuration(const Instruction& instruction) const
+{
+    Opcode opcode = (Opcode)instruction.Op.Opcode;
+    if (opcode == Opcode::Ipo || opcode == Opcode::Opo || opcode == Opcode::OpoVal)
+    {
+        //Port instruction times vary by port
+        Port port;
+        if (opcode == Opcode::Ipo || opcode == Opcode::Opo)
+            port = (Port)instruction.OpRegisterValue.Value;
+        else if (opcode == Opcode::OpoVal)
+            port = (Port)instruction.OpPortValue.Port;
+
+        auto search = PortDurations.find(port);
+        if (search == PortDurations.end())
+        {
+            printf("Unsupported port %d passed to VM::GetInstructionTime()\n", (u32)port);
+            return 0xFFFFFFFF;
+        }
+
+        return search->second;
+    }
+    else
+    {
+        //All other instructions use InstructionDurations
+        auto search = InstructionDurations.find(opcode);
+        if (search == InstructionDurations.end())
+        {
+            printf("Unsupported opcode '%d' passed to VM::GetInstructionTime()\n", (u32)opcode);
+            return 0xFFFFFFFF;
+        }
+
+        return search->second;
+    }
 }

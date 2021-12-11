@@ -335,7 +335,7 @@ void Gui::DrawDisassembler()
 
             //Column 2
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text(std::to_string(robot.Vm->InstructionTimes.find((Opcode)instruction.Op.Opcode)->second).c_str());
+            ImGui::Text(std::to_string(robot.Vm->GetInstructionDuration(instruction)).c_str());
         }
 
         ImGui::EndTable();

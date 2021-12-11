@@ -13,6 +13,10 @@ const u32 INSTRUCTION_NUM_VALUE_BYTES = u32(std::ceil(f32(INSTRUCTION_NUM_VALUE_
 const u32 INSTRUCTION_NUM_OPCODE_BITS = 6; //Allows up to 64 opcodes
 //Number of bits instructions use for registers
 const u32 INSTRUCTION_NUM_REGISTER_BITS = 3; //Allows up to 8 registers
+//Number of bits instructions use for ports.
+//Ports are defined with constants that have INSTRUCTION_NUM_VALUE_BITS bits but less are used so a port + 16 bit value can fit in one instruction.
+//This is fine since there are < 100 ports.
+const u32 INSTRUCTION_NUM_PORT_BITS = INSTRUCTION_NUM_VALUE_BITS - INSTRUCTION_NUM_OPCODE_BITS;
 
 using VmValue = i16; //VM variable size
 using Register = VmValue; //VM register size
@@ -28,13 +32,21 @@ union Instruction
         u32 RegB   : INSTRUCTION_NUM_REGISTER_BITS;
     } OpRegisterRegister;
 
-    //(mov|add|sub|mul|div|cmp|and|or|xor|load|store) register value
+    //(mov|add|sub|mul|div|cmp|and|or|xor|load|store|ipo|opo) register value
     struct
     {
         u32 Opcode : INSTRUCTION_NUM_OPCODE_BITS;
         u32 RegA   : INSTRUCTION_NUM_REGISTER_BITS;
         i32 Value  : INSTRUCTION_NUM_VALUE_BITS;
     } OpRegisterValue;
+
+    //ipo port (value|constant)
+    struct
+    {
+        u32 Opcode : INSTRUCTION_NUM_OPCODE_BITS;
+        i32 Port   : INSTRUCTION_NUM_PORT_BITS;
+        i32 Value  : INSTRUCTION_NUM_VALUE_BITS;
+    } OpPortValue;
 
     //(jmp|jeq|jne|jgr|jls|call) address
     struct
@@ -78,7 +90,7 @@ union Instruction
 };
 static_assert(sizeof(Instruction) == 4, "sizeof(Instruction) must be 4 bytes");
 
-//IMPORTANT: Don't change the values of these without updating the Compiler. It relies on the enums having certain values to shorten the code.
+//IMPORTANT: Don't change the values of these without updating the Compiler. It relies on the enums having certain values to shorten the code by combining switch cases.
 //Used to identify instructions
 enum class Opcode
 {
@@ -113,7 +125,10 @@ enum class Opcode
     Store = 28,     //store address register
     StoreP = 29,    //store register register
     Push = 30,      //push register
-    Pop = 31        //pop register
+    Pop = 31,       //pop register
+    Ipo = 32,       //ipo register port
+    Opo = 33,       //opo port register
+    OpoVal = 34,    //opo port value|constant
 };
 
 static std::string to_string(Opcode opcode, bool useRealOpcodeNames = false)
@@ -173,12 +188,14 @@ static std::string to_string(const Instruction& instruction, bool useRealOpcodeN
     case Opcode::OrVal:
     case Opcode::XorVal:
     case Opcode::Load:
+    case Opcode::Ipo:
         return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + "r" + std::to_string(instruction.OpRegisterValue.RegA) + " "
                + std::to_string(instruction.OpRegisterValue.Value);
 
-    //Special case for this variant of store
+    //Special case for this variant of store & opo
     case Opcode::Store:
+    case Opcode::Opo:
         return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + std::to_string(instruction.OpRegisterValue.Value) + " "
                + "r" + std::to_string(instruction.OpRegisterValue.RegA);
@@ -203,6 +220,12 @@ static std::string to_string(const Instruction& instruction, bool useRealOpcodeN
     case Opcode::Pop:
         return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + "r" + std::to_string(instruction.OpRegister.Reg);
+
+    //Special case for this variant of opo
+    case Opcode::OpoVal:
+        return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
+               + std::to_string(instruction.OpPortValue.Port) + " "
+               + std::to_string(instruction.OpPortValue.Value);
 
     default:
         return "Unsupported opcode " + std::to_string((u32)instruction.Op.Opcode);

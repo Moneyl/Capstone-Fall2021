@@ -4,6 +4,7 @@
 #include "utility/Result.h"
 #include "utility/Span.h"
 #include "Instruction.h"
+#include "Constants.h"
 #include "VM.h"
 #include <unordered_map>
 
@@ -28,6 +29,7 @@ public:
     void Push(VmValue value); //Push a value onto the stack
     VmValue Pop(); //Pop a value off of the stack
     void SetFlags(VmValue result); //Update arithmetic flags
+    VmValue& GetPort(Port port); //Get reference to a port
 
     u32 InstructionsSize() const { return _instructionsSizeBytes; } //The number of bytes that instructions take up in memory
     u32 VariablesSize() const { return _variablesSizeBytes; } //The number of bytes that variables take up in memory
@@ -38,6 +40,8 @@ public:
     const Span<Instruction> Instructions() { return Span<Instruction>((Instruction*)&Memory[VM::RESERVED_BYTES], InstructionsSize() / sizeof(Instruction)); };
     //Get a non-owning view of the programs variables
     const Span<VmValue> Variables() { return Span<VmValue>((VmValue*)&Memory[VM::RESERVED_BYTES + InstructionsSize()], VariablesSize() / sizeof(VmValue)); };
+    //Get the number of cycles it takes to execute an instruction. Returns u32_max if the instruction is unsupported.
+    u32 GetInstructionDuration(const Instruction& instruction) const;
 
     u8 Memory[VM::MEMORY_SIZE] = { 0 };
     Register Registers[VM::NUM_REGISTERS] = { 0 };
@@ -61,7 +65,7 @@ private:
 
 public:
     //The number of cycles it takes to execute each instruction
-    const std::unordered_map<Opcode, u32> InstructionTimes =
+    const std::unordered_map<Opcode, u32> InstructionDurations =
     {
         { Opcode::Mov,    1 },
         { Opcode::MovVal, 1 },
@@ -95,6 +99,28 @@ public:
         { Opcode::StoreP, 4 },
         { Opcode::Push,   1 },
         { Opcode::Pop,    1 },
+        //Note: ipo and both variants of opo ignore this and instead use PortDurations
+        { Opcode::Ipo,    1 },
+        { Opcode::Opo,    1 },
+        { Opcode::OpoVal, 1 }
+    };
+
+    //The number of cycles it takes to read/write from each port.
+    const std::unordered_map<Port, u32> PortDurations =
+    {
+        { Port::Spedometer,           1 },
+        { Port::Heat,                 1 },
+        { Port::Compass,              1 },
+        { Port::Steering,             1 },
+        { Port::TurretShoot,          1 },
+        { Port::TurretRotateOffset,   1 },
+        { Port::TurretRotateAbsolute, 1 },
+        { Port::MineLayer,            1 },
+        { Port::MineTrigger,          1 },
+        { Port::Sonar,                1 },
+        { Port::Radar,                1 },
+        { Port::Scanner,              1 },
+        { Port::ScannerArc,           1 },
     };
 };
 

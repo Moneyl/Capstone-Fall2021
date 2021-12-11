@@ -47,6 +47,8 @@ enum class Token
     Store = (u32)Opcode::Store,
     Push = (u32)Opcode::Push,
     Pop = (u32)Opcode::Pop,
+    Ipo = (u32)Opcode::Ipo,
+    Opo = (u32)Opcode::Opo,
     Register0,
     Register1,
     Register2,

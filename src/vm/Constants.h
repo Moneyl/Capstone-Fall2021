@@ -5,23 +5,25 @@
 #include <string_view>
 #include <limits>
 
-//Ports set to their addresses in VM memory
+//Ports used to communicate with hardware attached to the robot
+//Ports are stored at the start of VM memory. Their address is simply their value * sizeof(VmValue)
+//Read write them with ipo and opo
 enum class Port
 {
-    Spedometer = sizeof(VmValue) * 0,
-    Heat = sizeof(VmValue) * 1,
-    Compass = sizeof(VmValue) * 2,
-    Steering = sizeof(VmValue) * 3,
-    TurretShoot = sizeof(VmValue) * 4,
-    TurretRotateOffset = sizeof(VmValue) * 5,
-    TurretRotateAbsolute = sizeof(VmValue) * 6,
-    MineLayer = sizeof(VmValue) * 7,
-    MineTrigger = sizeof(VmValue) * 8,
-    Sonar = sizeof(VmValue) * 9,
-    Radar = sizeof(VmValue) * 10,
-    Scanner = sizeof(VmValue) * 11,
-    ScannerArc = sizeof(VmValue) * 12,
-    NumPorts = 8,
+    Spedometer,
+    Heat,
+    Compass,
+    Steering,
+    TurretShoot,
+    TurretRotateOffset,
+    TurretRotateAbsolute,
+    MineLayer,
+    MineTrigger,
+    Sonar,
+    Radar,
+    Scanner,
+    ScannerArc,
+    NumPorts,
 };
 
 //Built in assembly constants

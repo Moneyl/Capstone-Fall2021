@@ -22,6 +22,9 @@ struct Patch //Info about an instruction that needs to be patched in compile ste
 {
     size_t Index; //Index of the instruction to patch
     std::string_view Name; //Name of the label, variable, or constant that needs to be patched in
+    bool ConstantsOnly = false; //If true, variable patches will only work for constant variables. Doesn't do anything for label patches.
+    //Todo: Come up with a better way of handling this + OpoVal encoding. All the special cases it causes makes the code messy.
+    bool PatchPort = false; //Special variable used for OpoVal. If true the port set, if false the value is set
 };
 
 Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>& tokens)
@@ -235,6 +238,66 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
             break;
 
+            //Read from port
+        case Token::Ipo:
+            if (next.IsRegister() && next2.Type == Token::VarName && next3.Type == Token::Newline) //ipo register constant
+            {
+                instruction.OpRegisterValue.Opcode = (u16)Opcode::Ipo;
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterValue.Value = 0; //Patched in stage 2
+                curTokenIndex += 4;
+
+                //Mark instruction for variable address patching
+                variablePatches.push_back({ instructions.size(), next2.String, true /*ConstantsOnly*/ });
+            }
+            else if (next.IsRegister() && next2.Type == Token::Value && next3.Type == Token::Newline) //ipo register value
+            {
+                instruction.OpRegisterValue.Opcode = (u16)Opcode::Ipo;
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterValue.Value = String::ToShort(next2.String);
+                curTokenIndex += 4;
+            }
+            else
+                return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid ipo syntax. Expects `ipo register port`, where port is a port constant." });
+
+            break;
+
+            //Write to port
+        case Token::Opo:
+            if (next.Type == Token::VarName && next2.IsRegister() && next3.Type == Token::Newline) //opo port register
+            {
+                instruction.OpRegisterValue.Opcode = (u16)Opcode::Opo;
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(next2.Type);
+                instruction.OpRegisterValue.Value = 0; //Patched in stage 2
+                curTokenIndex += 4;
+
+                //Mark instruction for variable address patching
+                variablePatches.push_back({ instructions.size(), next.String });
+            }
+            else if (next.Type == Token::VarName && next2.Type == Token::Value && next3.Type == Token::Newline) //opo port value
+            {
+                instruction.OpPortValue.Opcode = (u16)Opcode::OpoVal;
+                instruction.OpPortValue.Port = 0; //Patched in stage 2
+                instruction.OpPortValue.Value = String::ToShort(next2.String);
+                curTokenIndex += 4;
+                
+                variablePatches.push_back({ instructions.size(), next.String, true /*ConstantsOnly*/, true /*PatchPort*/ });
+            }
+            else if (next.Type == Token::VarName && next2.Type == Token::VarName && next3.Type == Token::Newline) //opo port constant
+            {
+                instruction.OpPortValue.Opcode = (u16)Opcode::OpoVal;
+                instruction.OpPortValue.Port = 0; //Patched in stage 2
+                instruction.OpPortValue.Value = 0; //Patched in stage 2
+                curTokenIndex += 4;
+
+                variablePatches.push_back({ instructions.size(), next.String, true /*ConstantsOnly*/, true /*PatchPort*/ });
+                variablePatches.push_back({ instructions.size(), next2.String, true /*ConstantsOnly*/, false /*PatchPort*/ });
+            }
+            else
+                return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid opo syntax. Expects `opo port register|value|constant`, where port is a port constant." });
+
+            break;
+
             //Ignore blank lines
         case Token::Newline:
             curTokenIndex += 1;
@@ -343,8 +406,23 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
         for (Variable& variable : variables)
             if (variable.Name.compare(patch.Name) == 0) //Using ::compare to compare string_views by character
             {
+                //Some opcodes only allow constant variables
+                if (patch.ConstantsOnly && !variable.Constant)
+                    return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Variable used as an argument in opcode that only accepts constants. Opcode: " + to_string((Opcode)instructions[patch.Index].Op.Opcode) });
+
+                Opcode opcode = (Opcode)instructions[patch.Index].Op.Opcode;
                 if (variable.Constant) //Patch constant value
-                    instructions[patch.Index].OpRegisterValue.Value = variable.InitialValue;
+                {
+                    if (opcode == Opcode::OpoVal) //Special case since OpoVal uses different variable encoding than other instructions
+                    {
+                        if (patch.PatchPort)
+                            instructions[patch.Index].OpPortValue.Port = variable.InitialValue;
+                        else
+                            instructions[patch.Index].OpPortValue.Value = variable.InitialValue;
+                    }
+                    else
+                        instructions[patch.Index].OpRegisterValue.Value = variable.InitialValue;
+                }
                 else //Patch variable address
                     instructions[patch.Index].OpRegisterValue.Value = variableBlockOffset + variable.Address;
             }

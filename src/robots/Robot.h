@@ -28,8 +28,6 @@ public:
     void LoadProgramFromSource(std::string_view inFilePath);
     //Recompile program if the source file was edited since last reload
     void TryReload();
-    //Get reference to a VM port
-    VmValue& GetPort(Port port);
     //Path of source file
     const std::string& SourcePath() const { return _sourceFilePath; }
     //Use to uniquely identify a robot

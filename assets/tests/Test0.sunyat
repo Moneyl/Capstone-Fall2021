@@ -2,8 +2,6 @@
 ;;; Test0.sunyat
 ;;; Uses sonar to detect nearby robots and shoot them
 
-mov r6 1
-store P_SONAR r6
-store P_TURRET_ABS r7
-mov r6 1
-store P_SHOOT r6
+opo P_SONAR 1
+opo P_TURRET_ABS r7 ; TODO: Come up with better way of outputting. Call opo then call ipo right after?
+opo P_SHOOT 1
