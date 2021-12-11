@@ -293,7 +293,7 @@ void VM::Push(VmValue value)
         throw std::runtime_error("Stack overflow caused by VM::Push() call. SP = " + std::to_string(PC));
 
     //Grow stack down into memory and push a value onto it
-    SP -= INSTRUCTION_VALUE_BYTES;
+    SP -= INSTRUCTION_NUM_VALUE_BYTES;
     Store(SP, value);
 }
 
@@ -304,7 +304,7 @@ VmValue VM::Pop()
 
     //Pop a value off the top of stack and shrink it up towards the end of memory
     VmValue value = Load(SP);
-    SP += INSTRUCTION_VALUE_BYTES;
+    SP += INSTRUCTION_NUM_VALUE_BYTES;
     return value;
 }
 

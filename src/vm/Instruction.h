@@ -5,10 +5,14 @@
 #include <string>
 #include <cmath>
 
-//Number of bits/bytes per value. Addresses are the same size.
-const u32 INSTRUCTION_VALUE_BITS = 16;
+//Number of bits/bytes for VM words & addresses
+const u32 INSTRUCTION_NUM_VALUE_BITS = 16; //Range: [-32768, 32767]
 //The number of bytes per value. Rounded up so the VM doesn't need to deal with sub-byte data sizes if non byte aligned values are ever tried.
-const u32 INSTRUCTION_VALUE_BYTES = u32(std::ceil(f32(INSTRUCTION_VALUE_BITS / 8)));
+const u32 INSTRUCTION_NUM_VALUE_BYTES = u32(std::ceil(f32(INSTRUCTION_NUM_VALUE_BITS / 8)));
+//Number of bits instructions use for the opcode
+const u32 INSTRUCTION_NUM_OPCODE_BITS = 6; //Allows up to 64 opcodes
+//Number of bits instructions use for registers
+const u32 INSTRUCTION_NUM_REGISTER_BITS = 3; //Allows up to 8 registers
 
 using VmValue = i16; //VM variable size
 using Register = VmValue; //VM register size
@@ -19,38 +23,38 @@ union Instruction
     //(mov|add|sub|mul|div|cmp|and|or|xor|load|store) register register
     struct
     {
-        u32 Opcode : 5; //Note: Allows up to 32 opcodes
-        u32 RegA : 3;
-        u32 RegB : 3;
+        u32 Opcode : INSTRUCTION_NUM_OPCODE_BITS;
+        u32 RegA   : INSTRUCTION_NUM_REGISTER_BITS;
+        u32 RegB   : INSTRUCTION_NUM_REGISTER_BITS;
     } OpRegisterRegister;
 
     //(mov|add|sub|mul|div|cmp|and|or|xor|load|store) register value
     struct
     {
-        u32 Opcode : 5;
-        u32 RegA : 3;
-        i32 Value : INSTRUCTION_VALUE_BITS; //Range: [-32768, 32767]
+        u32 Opcode : INSTRUCTION_NUM_OPCODE_BITS;
+        u32 RegA   : INSTRUCTION_NUM_REGISTER_BITS;
+        i32 Value  : INSTRUCTION_NUM_VALUE_BITS;
     } OpRegisterValue;
 
     //(jmp|jeq|jne|jgr|jls|call) address
     struct
     {
-        u32 Opcode : 5;
-        u32 Unused : 3;
-        u32 Address : INSTRUCTION_VALUE_BITS; //Range: [-32768, 32767]
+        u32 Opcode  : INSTRUCTION_NUM_OPCODE_BITS;
+        u32 Unused  : INSTRUCTION_NUM_REGISTER_BITS;
+        u32 Address : INSTRUCTION_NUM_VALUE_BITS;
     } OpAddress;
 
     //(neg|push|pop) register
     struct
     {
-        u32 Opcode : 5;
-        u32 Reg : 3;
+        u32 Opcode : INSTRUCTION_NUM_OPCODE_BITS;
+        u32 Reg    : INSTRUCTION_NUM_REGISTER_BITS;
     } OpRegister;
 
     //ret
     struct
     {
-        u32 Opcode : 5;
+        u32 Opcode : INSTRUCTION_NUM_OPCODE_BITS;
     } Op;
 
     //Split into upper and lower bits
