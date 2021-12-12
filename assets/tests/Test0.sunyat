@@ -2,8 +2,7 @@
 ;;; Test0.sunyat
 ;;; Uses sonar to detect nearby robots and shoot them
 
-; Trigger sonar then read back the result
-opo P_SONAR 0
+; Trigger sonar. Stores heading of the nearest bot in r0
 ipo r0 P_SONAR
 ; Set turret to heading of nearest bot and shoot
 opo P_TURRET_ABS r0

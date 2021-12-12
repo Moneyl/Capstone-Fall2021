@@ -47,6 +47,9 @@ public:
     f32 TurretAngle = 0;
     f32 Health = MaxHealth;
     f32 Heat = 0.0f;
+    f32 Armor = 0.0f;
+    f32 Accuracy = 0.0f; //Accuracy of last scanner activation. Difference in degrees between the turret direction and the direction of the detected bot
+    bool ShieldOn = true;
     VmValue NumMines = MaxMines;
 
     //Set to true when an error occurs. If true ::Update() is stopped until the error is resolved.
@@ -54,6 +57,7 @@ public:
 
     static const inline f32 TurretLength = 12.0f;
     static const inline f32 TurretShootFrequency = 1.0f / 5.0f; //Max shots / second of turrets
+    static const inline VmValue TurretShootAngleControl = 4; //Num of degrees in either direction bullets can be shifted towards when shooting
     static const inline f32 MineLayerFrequency = 1.0f / 2.0f; //Max mines that can be laid per second
     static const inline f32 ChassisSize = 10.0f;
     static const inline VmValue MaxMines = 10; //Todo: Make this configurable with #config directives
@@ -61,10 +65,10 @@ public:
     static const inline f32 RadarSonarFrequency = 1.0f / 3.0f;
     static const inline f32 ScannerFrequency = 1.0f / 3.0f;
     static const inline f32 HeatsinkCapacity = 1.0f;
-    static const inline f32 MaxHeat = 10.0f;
-    static const inline f32 HeatDamageThreshold = 6.0f;
+    static const inline f32 MaxHeat = 500.0f;
+    static const inline f32 HeatDamageThreshold = MaxHeat * 0.8f;
     static const inline f32 OverHeatDamageFrequency = 0.25f;
-    static const inline f32 HeatPerTurretShot = 0.25f;
+    static const inline f32 HeatPerTurretShot = 2.5f;
     static const inline f32 MaxHealth = 10.0f;
 private:
     //Called by the VM when ports are read (ipo) and written (opo)

@@ -11,8 +11,6 @@
 enum class Port
 {
     Spedometer,
-    Heat,
-    Compass,
     Steering,
     TurretShoot,
     TurretRotateOffset,
@@ -23,6 +21,12 @@ enum class Port
     Radar,
     Scanner,
     ScannerArc,
+    Throttle,
+    Heat,
+    Compass,
+    Armor,
+    Random,
+    Shield,
     NumPorts,
 };
 
@@ -31,8 +35,6 @@ static std::unordered_map<std::string_view, VmValue> BuiltInConstants =
 {
     //Port addresses
     { "P_SPEDOMETER", (VmValue)Port::Spedometer },
-    { "P_HEAT", (VmValue)Port::Heat },
-    { "P_COMPASS", (VmValue)Port::Compass },
     { "P_STEERING", (VmValue)Port::Steering },
     { "P_SHOOT", (VmValue)Port::TurretShoot },
     { "P_TURRET_OFS", (VmValue)Port::TurretRotateOffset },
@@ -43,6 +45,14 @@ static std::unordered_map<std::string_view, VmValue> BuiltInConstants =
     { "P_RADAR", (VmValue)Port::Radar },
     { "P_SCANNER", (VmValue)Port::Scanner },
     { "P_SCAN_ARC", (VmValue)Port::ScannerArc },
+    { "P_THROTTLE", (VmValue)Port::Throttle },
+    { "P_HEAT", (VmValue)Port::Heat },
+    { "P_COMPASS", (VmValue)Port::Compass },
+    //The old version is P_DAMAGE. Included for compatibility reasons.
+    { "P_ARMOR", (VmValue)Port::Armor }, { "P_DAMAGE", (VmValue)Port::Armor },
+    { "P_RANDOM", (VmValue)Port::Random },
+    { "P_SHIELD", (VmValue)Port::Shield },
+    //{ "", (VmValue)Port:: },
 
     //Interrupts
 

@@ -122,9 +122,15 @@ public:
         { Port::MineLayer,            1 },
         { Port::MineTrigger,          1 },
         { Port::Sonar,                1 },
-        { Port::Radar,                1 },
+        { Port::Radar,                3 },
         { Port::Scanner,              1 },
         { Port::ScannerArc,           1 },
+        { Port::Throttle,             1 },
+        { Port::Heat,                 1 },
+        { Port::Compass,              1 },
+        { Port::Armor,                1 },
+        { Port::Random,               1 },
+        { Port::Shield,               1 },
     };
 };
 

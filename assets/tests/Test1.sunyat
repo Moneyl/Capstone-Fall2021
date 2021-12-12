@@ -27,7 +27,7 @@ jmp !main
 
 ; Move forward & turn clockwise
 !forward
-opo P_SPEDOMETER MOVE_SPEED
+opo P_THROTTLE MOVE_SPEED
 opo P_STEERING TURN_RATE
 jmp !reset_check
 
@@ -35,7 +35,7 @@ jmp !reset_check
 !backward
 mov r2 MOVE_SPEED
 neg r2
-opo P_SPEDOMETER r2
+opo P_THROTTLE r2
 opo P_STEERING TURN_RATE
 opo P_SHOOT 1
 opo P_TURRET_ABS 0 ; Keep turret facing east when going backwards

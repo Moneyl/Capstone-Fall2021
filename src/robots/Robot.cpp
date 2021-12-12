@@ -58,33 +58,106 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
 void Robot::OnPortRead(Port port, f32 deltaTime)
 {
     //VM executed ipo. Write hardware state to port if applicable
+    //Ports that do nothing in this function are write only
     switch (port)
     {
         case Port::Spedometer:
-            break;
-        case Port::Heat:
-            break;
-        case Port::Compass:
+            Vm->GetPort(Port::Spedometer) = Speed;
             break;
         case Port::Steering:
             break;
         case Port::TurretShoot:
             break;
         case Port::TurretRotateOffset:
+            Vm->GetPort(Port::TurretRotateOffset) = TurretAngle - Angle;
             break;
         case Port::TurretRotateAbsolute:
+            Vm->GetPort(Port::TurretRotateAbsolute) = TurretAngle;
             break;
         case Port::MineLayer:
+            Vm->GetPort(Port::MineLayer) = NumMines;
             break;
         case Port::MineTrigger:
+            Vm->GetPort(Port::MineTrigger) = MaxMines - NumMines; //# of mines laid
             break;
-        case Port::Sonar: //Is either 0 or the result of the last `opo P_SONAR`
+        case Port::Sonar:
+            if (_sonarTimer >= RadarSonarFrequency)
+            {
+                //Sonar triggered
+                _sonarTimer = 0.0f;
+                _sonarOn = true;
+
+                //Check for robot in sonar range
+                Robot* closestBot = _arena->GetClosestRobot(Position, this);
+                f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
+                if (closestBot && closestBotDistance <= RadarSonarRange)
+                {
+                    //Write heading of nearest bot back to the port
+                    const Vec2<f32> dir = (closestBot->Position - Position).Normalized();
+                    Vm->GetPort(Port::Sonar) = (VmValue)dir.AngleUnitDegrees();
+                }
+            }
             break;
-        case Port::Radar: //Is either 0 or the result of the last `opo P_RADAR`
+        case Port::Radar:
+            if (_radarTimer >= RadarSonarFrequency)
+            {
+                //Radar triggered
+                _radarTimer = 0.0f;
+                _radarOn = true;
+
+                //Check for robot in radar range
+                Robot* closestBot = _arena->GetClosestRobot(Position, this);
+                f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
+                if (closestBot && closestBotDistance <= RadarSonarRange)
+                {
+                    //Write distance of nearest bot back to the port
+                    Vm->GetPort(Port::Radar) = (closestBot->Position - Position).Length();
+                }
+            }
             break;
         case Port::Scanner:
+            if (_scannerTimer >= ScannerFrequency)
+            {
+                //Scanner triggered
+                _scannerTimer = 0.0f;
+                _scannerOn = true;
+
+                //Check for robot in scanner arc
+                Robot* closestBotArc = _arena->GetClosestRobot(Position, this, ToRadians(TurretAngle - _scannerArcWidth / 2.0f), ToRadians(TurretAngle + _scannerArcWidth / 2.0f));
+                if (closestBotArc)
+                {
+                    //Write distance to robot back into the port
+                    Vm->GetPort(Port::Scanner) = (closestBotArc->Position - Position).Length();
+
+                    //Calculate accuracy
+                    f32 angleToBot = (closestBotArc->Position - Position).AngleUnitDegrees();
+                    Accuracy = angleToBot - TurretAngle;
+                }
+            }
             break;
         case Port::ScannerArc:
+            Vm->GetPort(Port::ScannerArc) = _scannerArcWidth;
+            break;
+        case Port::Throttle:
+            break;
+        case Port::Heat:
+            Vm->GetPort(Port::Heat) = Heat;
+            break;
+        case Port::Compass:
+            Vm->GetPort(Port::Compass) = Angle;
+            break;
+        case Port::Armor:
+            Vm->GetPort(Port::Armor) = Armor;
+            break;
+        case Port::Random:
+        {
+            int randVal = rand() - RAND_MAX / 2; //Generate random value and subtract RAND_MAX / 2 to allow negative numbers
+            randVal %= std::numeric_limits<VmValue>::max(); //Scale to range of VmValue
+            Vm->GetPort(Port::Random) = randVal;
+        }
+            break;
+        case Port::Shield:
+            Vm->GetPort(Port::Shield) = ShieldOn;
             break;
         default:
             break;
@@ -98,11 +171,6 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
     switch (port)
     {
     case Port::Spedometer:
-        Speed = value;
-        break;
-    case Port::Heat:
-        break;
-    case Port::Compass:
         break;
     case Port::Steering:
         Angle += value * deltaTime;
@@ -111,7 +179,13 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
     case Port::TurretShoot:
         if (_turretShootTimer >= TurretShootFrequency)
         {
-            _arena->CreateBullet(Position, TurretDirection(), ID());
+            //Calculate shoot angle. Can be slightly adjusted by writing a non zero value to the port
+            f32 shootAdjustment = Range(Vm->GetPort(Port::TurretShoot), -TurretShootAngleControl, TurretShootAngleControl);
+            f32 shootAngle = ToRadians(360.0f - TurretDirection().AngleUnitDegrees() + shootAdjustment);
+            Vec2<f32> shootDirection = { cos(shootAngle), sin(shootAngle) };
+
+            //Shoot the turret
+            _arena->CreateBullet(Position, shootDirection, ID());
             Heat += HeatPerTurretShot;
             _turretShootTimer = 0.0f;
         }
@@ -137,58 +211,27 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
                 _arena->DetonateMine(mine);
         break;
     case Port::Sonar:
-        if (_sonarTimer >= RadarSonarFrequency)
-        {
-            //Sonar triggered
-            _sonarTimer = 0.0f;
-            _sonarOn = true;
-
-            //Check for robot in sonar range
-            Robot* closestBot = _arena->GetClosestRobot(Position, this);
-            f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
-            if (closestBot && closestBotDistance <= RadarSonarRange)
-            {
-                //Write heading of nearest bot back to the port
-                const Vec2<f32> dir = (closestBot->Position - Position).Normalized();
-                Vm->GetPort(Port::Sonar) = (VmValue)dir.AngleUnitDegrees();
-            }
-        }
         break;
     case Port::Radar:
-        if (_radarTimer >= RadarSonarFrequency)
-        {
-            //Radar triggered
-            _radarTimer = 0.0f;
-            _radarOn = true;
-
-            //Check for robot in radar range
-            Robot* closestBot = _arena->GetClosestRobot(Position, this);
-            f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
-            if (closestBot && closestBotDistance <= RadarSonarRange)
-            {
-                //Write distance of nearest bot back to the port
-                Vm->GetPort(Port::Radar) = (closestBot->Position - Position).Length();
-            }
-        }
         break;
     case Port::Scanner:
-        if (_scannerTimer >= ScannerFrequency)
-        {
-            //Scanner triggered
-            _scannerTimer = 0.0f;
-            _scannerOn = true;
-
-            //Check for robot in scanner arc
-            Robot* closestBotArc = _arena->GetClosestRobot(Position, this, ToRadians(Angle - _scannerArcWidth), ToRadians(Angle + _scannerArcWidth));
-            if (closestBotArc)
-            {
-                //Write distance to robot back into the port
-                Vm->GetPort(Port::Scanner) = (closestBotArc->Position - Position).Length();
-            }
-        }
         break;
     case Port::ScannerArc:
         _scannerArcWidth = Range((f32)value, 0.0f, 64.0f);
+        break;
+    case Port::Throttle:
+        Speed = value;
+        break;
+    case Port::Heat:
+        break;
+    case Port::Compass:
+        break;
+    case Port::Armor:
+        break;
+    case Port::Random:
+        break;
+    case Port::Shield:
+        ShieldOn = Vm->GetPort(Port::Shield) != 0;
         break;
     default:
         break;
