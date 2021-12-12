@@ -111,6 +111,10 @@ void Arena::Reset()
     robot2->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test1.sunyat");
     robot2->Position.x = arenaCenter.x - 100;
     robot2->Position.y = arenaCenter.y - 50;
+
+    //Clear other entities
+    Bullets.clear();
+    Mines.clear();
 }
 
 void Arena::CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, f32 damage)
