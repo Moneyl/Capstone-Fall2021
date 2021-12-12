@@ -19,7 +19,7 @@ void Arena::Update(f32 deltaTime)
         _cycleAccumulator -= cyclesDelta;
         for (Robot* robot : Robots)
         {
-            if (robot->Health <= 0)
+            if (robot->Armor <= 0)
                 continue;
 
             //Recompile source file if it was edited
@@ -75,7 +75,7 @@ void Arena::Update(f32 deltaTime)
     }
 
     //Erase dead objects
-    EraseIf(Robots, [](const Robot* robot) { return robot->Health <= 0; });
+    EraseIf(Robots, [](const Robot* robot) { return robot->Armor <= 0; });
     EraseIf(Bullets, [](const Bullet& bullet) { return !bullet.Alive; });
     EraseIf(Mines, [](const Mine& mine) { return !mine.Alive; });
 }
@@ -113,12 +113,12 @@ void Arena::Reset()
     robot2->Position.y = arenaCenter.y - 50;
 }
 
-void Arena::CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, VmValue damage)
+void Arena::CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, f32 damage)
 {
     Bullets.emplace_back(position, direction, creator, damage);
 }
 
-void Arena::CreateMine(const Vec2<f32>& position, u64 creator, VmValue damage)
+void Arena::CreateMine(const Vec2<f32>& position, u64 creator, f32 damage)
 {
     Mines.emplace_back(position, creator, damage);
 }

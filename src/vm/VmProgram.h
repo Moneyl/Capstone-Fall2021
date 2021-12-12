@@ -13,17 +13,25 @@ struct ProgramHeader
     u32 VariablesSize; //Size of the variable block
 };
 
+//Config vars defined in the program. Can be used to determine robot hardware stats
+struct VmConfig
+{
+    std::string Name; //Case insensitive
+    VmValue Value;
+};
+
 //Program binary that the VM can run
 struct VmProgram
 {
-    VmProgram(const ProgramHeader& header, const std::vector<Instruction>& instructions, const std::vector<i16>& variables)
-        : Header(header), Instructions(instructions), Variables(variables) {}
-    VmProgram(const ProgramHeader&& header, const std::vector<Instruction>&& instructions, const std::vector<i16>&& variables)
-        : Header(header), Instructions(instructions), Variables(variables) {}
+    VmProgram(const ProgramHeader& header, const std::vector<Instruction>& instructions, const std::vector<VmValue>& variables, const std::vector<VmConfig>& config)
+        : Header(header), Instructions(instructions), Variables(variables), Config(config) {}
+    VmProgram(const ProgramHeader&& header, const std::vector<Instruction>&& instructions, const std::vector<VmValue>&& variables, const std::vector<VmConfig>&& config)
+        : Header(header), Instructions(instructions), Variables(variables), Config(config) {}
 
     ProgramHeader Header;
     const std::vector<Instruction> Instructions;
     const std::vector<VmValue> Variables;
+    const std::vector<VmConfig> Config;
 
     static const u32 EXPECTED_SIGNATURE = ('A' << 0) | ('T' << 8) | ('R' << 16) | ('B' << 24); //ASCII "ATRB"
 
@@ -41,6 +49,23 @@ struct VmProgram
 
         //Write variables
         out.write((char*)Variables.data(), Variables.size() * sizeof(VmValue));
+
+        //Write config data
+        u32 configCount = Config.size();
+        out.write((char*)&configCount, sizeof(u32));
+        for (const VmConfig& config : Config)
+        {
+            //Write value
+            out.write((char*)&config.Value, sizeof(VmValue));
+
+            //Write name string
+            for (char c : config.Name)
+                out.write(&c, 1);
+
+            //Write null terminator at end of name
+            char nullTerminator = '\0';
+            out.write(&nullTerminator, 1);
+        }
     }
 
     //Read from file
@@ -53,6 +78,7 @@ struct VmProgram
         ProgramHeader header;
         std::vector<Instruction> instructions = {};
         std::vector<VmValue> variables = {};
+        std::vector<VmConfig> config = {};
 
         //Read header
         in.read((char*)&header, sizeof(ProgramHeader));
@@ -71,8 +97,30 @@ struct VmProgram
         //Read variables
         in.read((char*)variables.data(), header.VariablesSize);
 
+        //Read config count
+        u32 configCount = 0;
+        in.read((char*)&configCount, sizeof(u32));
+
+        //Read config data
+        for (u32 i = 0; i < configCount; i++)
+        {
+            VmConfig& configVal = config.emplace_back();
+
+            //Read value
+            in.read((char*)configVal.Value, sizeof(VmValue));
+
+            //Read name as null terminated string
+            char c;
+            in.read(&c, 1);
+            do
+            {
+                configVal.Name += c;
+                in.read(&c, 1);
+            } while (c != '\0');
+        }
+
         //Construct and return VmProgram instance
-        VmProgram program(std::move(header), std::move(instructions), std::move(variables)); //std::move() used to avoid unecessary copies
+        VmProgram program(std::move(header), std::move(instructions), std::move(variables), std::move(config)); //std::move() used to avoid unecessary copies
         return Success(program);
     }
 };

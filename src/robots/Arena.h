@@ -8,13 +8,13 @@ class Renderer;
 //Bullet fired by robot turrets. Robots take damage when hit by them
 struct Bullet
 {
-    Bullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, VmValue damage)
+    Bullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, f32 damage)
         : Position(position), Direction(direction.Normalized()), Creator(creator), Damage(damage)  {}
 
     Vec2<f32> Position;
     Vec2<f32> Direction;
     u64 Creator; //Unique ID of the robot that fired it
-    VmValue Damage;
+    f32 Damage;
     bool Alive = true; //False signals the Arena to delete it
 
     const static inline f32 Speed = 5.0f;
@@ -24,12 +24,12 @@ struct Bullet
 //Mine dropped by robots. Robots take damage if they hit them
 struct Mine
 {
-    Mine(const Vec2<f32>& position, u64 creator, VmValue damage)
+    Mine(const Vec2<f32>& position, u64 creator, f32 damage)
         : Position(position), Creator(creator), Damage(damage) {}
 
     Vec2<f32> Position;
     u64 Creator; //Unique ID of the robot that fired it
-    VmValue Damage;
+    f32 Damage;
     bool Alive = true; //False signals the Arena to delete it
     
     const static inline f32 ExplosionRadius = 10.0f;
@@ -43,8 +43,8 @@ public:
     void Update(f32 deltaTime);
     void Draw(Renderer* renderer);
     void Reset(); //Default arena
-    void CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, VmValue damage = 1);
-    void CreateMine(const Vec2<f32>& position, u64 creator, VmValue damage = 1);
+    void CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, f32 damage);
+    void CreateMine(const Vec2<f32>& position, u64 creator, f32 damage);
     void DetonateMine(Mine& mine);
     //Get closest robot to a position. Can optionally exclude a single robot exclude robots outside a specific arc
     Robot* GetClosestRobot(const Vec2<f32>& position, Robot* exclude = nullptr, f32 angleMinRadians = 0.0f, f32 angleMaxRadians = 2 * PI);

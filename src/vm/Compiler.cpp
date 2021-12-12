@@ -48,6 +48,9 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
     std::vector<Patch> labelPatches = {};
     std::vector<Patch> variablePatches = {};
 
+    //Config values
+    std::vector<VmConfig> config = {};
+
     //Peek ahead in the token list. Returns Token::NONE if curTokenIndex + distance is out of bounds
     auto PeekToken = [&](u32 distance) -> TokenData { return (curTokenIndex + distance < tokens.size()) ? tokens[curTokenIndex + distance] : TokenData{ Token::None, "" }; };
 
@@ -349,6 +352,16 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
             }
             break;
 
+        case Token::Config:
+            if (next.Type == Token::VarName && next2.Type == Token::Value && next3.Type == Token::Newline)
+            {
+                VmConfig& configVal = config.emplace_back();
+                configVal.Name = String::ToLower(next.String); //Names are case insensitive
+                configVal.Value = String::ToShort(next2.String);
+                curTokenIndex += 4;
+            }
+            break;
+
         case Token::Label:
             if (next.Type == Token::Newline)
             {
@@ -459,7 +472,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
     header.VariablesSize = variablesSizeBytes;
 
     //Construct and return vm program instance
-    VmProgram program(std::move(header), std::move(instructions), std::move(finalVariables));
+    VmProgram program(std::move(header), std::move(instructions), std::move(finalVariables), std::move(config));
     return Success(program);
 }
 

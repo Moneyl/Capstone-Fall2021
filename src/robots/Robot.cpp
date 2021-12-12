@@ -8,20 +8,18 @@ Robot::Robot()
     //Give each robot a unique ID
     static u64 id = 0;
     _id = id++;
-
-    //Bind ports callbacks to VM
-    Vm->OnPortRead = std::bind(&Robot::OnPortRead, this, std::placeholders::_1, std::placeholders::_2);
-    Vm->OnPortWrite = std::bind(&Robot::OnPortWrite, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    Init();
 }
 
 void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
 {
     _arena = &arena;
-    if (Error || Health <= 0)
+    if (Error || Armor <= 0)
         return;
 
     //Multiplier used to make hardware independent of framerate and cycle rate
     const f32 timePerCycle = deltaTime / (f32)cyclesToExecute;
+    LastPosition = Position;
 
     //Cycle VM
     for (u32 i = 0; i < cyclesToExecute; i++)
@@ -44,14 +42,13 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
 
         //Movement
         const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
-        LastPosition = Position;
         Position += direction * Speed * timePerCycle;
 
         //Heatsink
-        Heat -= HeatsinkCapacity * timePerCycle;
+        Heat -= Heatsink * timePerCycle;
         Heat = std::max(0.0f, Heat);
         if (Heat >= HeatDamageThreshold)
-            Health -= OverHeatDamageFrequency * timePerCycle;
+            Armor -= OverHeatDamageFrequency * timePerCycle;
     }
 }
 
@@ -185,7 +182,7 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
             Vec2<f32> shootDirection = { cos(shootAngle), sin(shootAngle) };
 
             //Shoot the turret
-            _arena->CreateBullet(Position, shootDirection, ID());
+            _arena->CreateBullet(Position, shootDirection, ID(), _turretDamage);
             Heat += HeatPerTurretShot;
             _turretShootTimer = 0.0f;
         }
@@ -199,7 +196,7 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
     case Port::MineLayer:
         if (NumMines > 0 && _mineLayerTimer >= MineLayerFrequency)
         {
-            _arena->CreateMine(Position, ID());
+            _arena->CreateMine(Position, ID(), MineDamage);
             _mineLayerTimer = 0.0f;
             NumMines--;
         }
@@ -238,6 +235,347 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
     }
 }
 
+void Robot::Init()
+{
+    //Bind ports callbacks to VM
+    Vm->OnPortRead = std::bind(&Robot::OnPortRead, this, std::placeholders::_1, std::placeholders::_2);
+    Vm->OnPortWrite = std::bind(&Robot::OnPortWrite, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
+    //Read config values
+    std::optional<VmValue> scanner = Vm->GetConfigOr("scanner");
+    std::optional<VmValue> turret = Vm->GetConfigOr("turret");
+    std::optional<VmValue> armor = Vm->GetConfigOr("armor");
+    std::optional<VmValue> engine = Vm->GetConfigOr("engine");
+    std::optional<VmValue> heatsink = Vm->GetConfigOr("heatsink");
+    std::optional<VmValue> mines = Vm->GetConfigOr("mines");
+    std::optional<VmValue> shield = Vm->GetConfigOr("shield");
+
+    //Track missing values to automatically distribute unused points between
+    std::vector<std::string> missingConfigValues = {};
+
+    //Setup hardware based on config values. Maximum of Robot::MaxConfigPoints can be spread between them.
+    VmValue pointsTotal = 0;
+    if (scanner && pointsTotal < MaxConfigPoints)
+    {
+        const VmValue pointsRemaining = MaxConfigPoints - pointsTotal;
+        const VmValue points = std::min(scanner.value(), pointsRemaining);
+        pointsTotal += points;
+        SetupScanner(points);
+    }
+    else
+        missingConfigValues.push_back("scanner");
+
+    if (turret && pointsTotal < MaxConfigPoints)
+    {
+        const VmValue pointsRemaining = MaxConfigPoints - pointsTotal;
+        const VmValue points = std::min(turret.value(), pointsRemaining);
+        pointsTotal += points;
+        SetupTurret(points);
+    }
+    else
+        missingConfigValues.push_back("turret");
+
+    if (armor && pointsTotal < MaxConfigPoints)
+    {
+        const VmValue pointsRemaining = MaxConfigPoints - pointsTotal;
+        const VmValue points = std::min(armor.value(), pointsRemaining);
+        pointsTotal += points;
+        SetupArmor(points);
+    }
+    else
+        missingConfigValues.push_back("armor");
+
+    if (engine && pointsTotal < MaxConfigPoints)
+    {
+        const VmValue pointsRemaining = MaxConfigPoints - pointsTotal;
+        const VmValue points = std::min(engine.value(), pointsRemaining);
+        pointsTotal += points;
+        SetupEngine(points);
+    }
+    else
+        missingConfigValues.push_back("engine");
+
+    if (heatsink && pointsTotal < MaxConfigPoints)
+    {
+        const VmValue pointsRemaining = MaxConfigPoints - pointsTotal;
+        const VmValue points = std::min(heatsink.value(), pointsRemaining);
+        pointsTotal += points;
+        SetupHeatsink(points);
+    }
+    else
+        missingConfigValues.push_back("heatsink");
+
+    if (mines && pointsTotal < MaxConfigPoints)
+    {
+        const VmValue pointsRemaining = MaxConfigPoints - pointsTotal;
+        const VmValue points = std::min(mines.value(), pointsRemaining);
+        pointsTotal += points;
+        SetupMines(points);
+    }
+    else
+        missingConfigValues.push_back("mines");
+
+    if (shield && pointsTotal < MaxConfigPoints)
+    {
+        const VmValue pointsRemaining = MaxConfigPoints - pointsTotal;
+        const VmValue points = std::min(shield.value(), pointsRemaining);
+        pointsTotal += points;
+        SetupShield(points);
+    }
+    else
+        missingConfigValues.push_back("shield");
+
+    //Distribute remaining points between any missing config values
+    for (const std::string& value : missingConfigValues)
+    {
+        const VmValue pointsRemaining = MaxConfigPoints - pointsTotal;
+        if (pointsRemaining <= 0)
+            break; //Out of points
+
+        //Apply default point counts to hardware
+        if (value == "scanner")
+        {
+            const VmValue points = std::min((VmValue)5, pointsRemaining);
+            pointsTotal += points;
+            SetupScanner(points);
+        }
+        if (value == "turret")
+        {
+            const VmValue points = std::min((VmValue)2, pointsRemaining);
+            pointsTotal += points;
+            SetupTurret(points);
+        }
+        if (value == "armor")
+        {
+            const VmValue points = std::min((VmValue)2, pointsRemaining);
+            pointsTotal += points;
+            SetupArmor(points);
+        }
+        if (value == "engine")
+        {
+            const VmValue points = std::min((VmValue)2, pointsRemaining);
+            pointsTotal += points;
+            SetupEngine(points);
+        }
+        if (value == "heatsink")
+        {
+            const VmValue points = std::min((VmValue)1, pointsRemaining);
+            pointsTotal += points;
+            SetupHeatsink(points);
+        }
+        if (value == "mines")
+        {
+            const VmValue points = std::min((VmValue)0, pointsRemaining);
+            pointsTotal += points;
+            SetupMines(points);
+        }
+        if (value == "shield")
+        {
+            const VmValue points = std::min((VmValue)0, pointsRemaining);
+            pointsTotal += points;
+            SetupShield(points);
+        }
+    }
+}
+
+void Robot::SetupScanner(VmValue points)
+{
+    switch (points)
+    {
+    case 0:
+        _scannerRange = 250.0f;
+        break;
+    case 1:
+        _scannerRange = 350.0f;
+        break;
+    case 2:
+        _scannerRange = 500.0f;
+        break;
+    case 3:
+        _scannerRange = 700.0f;
+        break;
+    case 4:
+        _scannerRange = 1000.0f;
+        break;
+    case 5:
+        _scannerRange = 1500.0f;
+        break;
+    default:
+        printf("Out of range config value for 'scanner' of %d\n", points);
+        break;
+    }
+}
+
+void Robot::SetupTurret(VmValue points)
+{
+    switch (points)
+    {
+    case 0:
+        _turretDamage = 0.5f;
+        break;
+    case 1:
+        _turretDamage = 0.8f;
+        break;
+    case 2:
+        _turretDamage = 1.0f;
+        break;
+    case 3:
+        _turretDamage = 1.2f;
+        break;
+    case 4:
+        _turretDamage = 1.35f;
+        break;
+    case 5:
+        _turretDamage = 1.5f;
+        break;
+    default:
+        printf("Out of range config value for 'turret' of %d\n", points);
+        break;
+    }
+}
+
+void Robot::SetupArmor(VmValue points)
+{
+    switch (points)
+    {
+    case 0:
+        MaxArmor = Armor = ArmorBase * 0.5f;
+        ArmorDamageMultiplier = 1.33f;
+        break;
+    case 1:
+        MaxArmor = Armor = ArmorBase * 0.66f;
+        ArmorDamageMultiplier = 1.2f;
+        break;
+    case 2:
+        MaxArmor = Armor = ArmorBase * 1.0f;
+        ArmorDamageMultiplier = 1.0f;
+        break;
+    case 3:
+        MaxArmor = Armor = ArmorBase * 1.2f;
+        ArmorDamageMultiplier = 0.85f;
+        break;
+    case 4:
+        MaxArmor = Armor = ArmorBase * 1.3f;
+        ArmorDamageMultiplier = 0.75f;
+        break;
+    case 5:
+        MaxArmor = Armor = ArmorBase * 1.5f;
+        ArmorDamageMultiplier = 0.66f;
+        break;
+    default:
+        printf("Out of range config value for 'armor' of %d\n", points);
+        break;
+    }
+}
+
+void Robot::SetupEngine(VmValue points)
+{
+    switch (points)
+    {
+    case 0:
+        Engine = 0.5f;
+        break;
+    case 1:
+        Engine = 0.8f;
+        break;
+    case 2:
+        Engine = 1.0f;
+        break;
+    case 3:
+        Engine = 1.2f;
+        break;
+    case 4:
+        Engine = 1.35f;
+        break;
+    case 5:
+        Engine = 1.5f;
+        break;
+    default:
+        printf("Out of range config value for 'engine' of %d\n", points);
+        break;
+    }
+}
+
+void Robot::SetupHeatsink(VmValue points)
+{
+    switch (points)
+    {
+    case 0:
+        Heatsink = 0.75f;
+        break;
+    case 1:
+        Heatsink = 1.0f;
+        break;
+    case 2:
+        Heatsink = 1.125f;
+        break;
+    case 3:
+        Heatsink = 1.25f;
+        break;
+    case 4:
+        Heatsink = 1.33f;
+        break;
+    case 5:
+        Heatsink = 1.5f;
+        break;
+    default:
+        printf("Out of range config value for 'heatsink' of %d\n", points);
+        break;
+    }
+}
+
+void Robot::SetupMines(VmValue points)
+{
+    switch (points)
+    {
+    case 0:
+        NumMines = 2;
+        break;
+    case 1:
+        NumMines = 4;
+        break;
+    case 2:
+        NumMines = 6;
+        break;
+    case 3:
+        NumMines = 10;
+        break;
+    case 4:
+        NumMines = 16;
+        break;
+    case 5:
+        NumMines = 24;
+        break;
+    default:
+        printf("Out of range config value for 'mines' of %d\n", points);
+        break;
+    }
+}
+
+void Robot::SetupShield(VmValue points)
+{
+    switch (points)
+    {
+    case 0:
+    case 1:
+    case 2:
+        Shields = 0.0f;
+        break;
+    case 3:
+        Shields = 2.0f / 3.0f;
+        break;
+    case 4:
+        Shields = 1.0f / 2.0f;
+        break;
+    case 5:
+        Shields = 1.0f / 3.0f;
+        break;
+    default:
+        printf("Out of range config value for 'shield' of %d\n", points);
+        break;
+    }
+}
+
 void Robot::Draw(Renderer* renderer)
 {
     renderer->DrawTriangle(Position, Robot::ChassisSize, Angle, { 0, 127, 0, 255 }); //Chassis
@@ -245,7 +583,7 @@ void Robot::Draw(Renderer* renderer)
     if (_sonarOn || _radarOn)
         renderer->DrawCircle(Position, RadarSonarRange, ColorWhite); //Sonar/radar arc
     if (_scannerOn)
-        renderer->DrawArc(Position, 200.0f, Angle, _scannerArcWidth, ColorWhite, 10); //Scanner arc
+        renderer->DrawArc(Position, _scannerRange, Angle, _scannerArcWidth, ColorWhite, 10); //Scanner arc
 
     _sonarOn = false;
     _radarOn = false;
@@ -280,9 +618,8 @@ void Robot::TryReload()
         //Successful reload
         Vm = std::move(newVM);
 
-        //Bind ports callbacks to new VM
-        Vm->OnPortRead = std::bind(&Robot::OnPortRead, this, std::placeholders::_1, std::placeholders::_2);
-        Vm->OnPortWrite = std::bind(&Robot::OnPortWrite, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        //Reinit bot. Sets port callbacks and does hardware config
+        Init();
 
         printf("Recompiled robot '%s'\n", sourceFileName.c_str());
     }
@@ -306,10 +643,15 @@ std::array<Vec2<f32>, 3> Robot::GetChassisPoints() const
     };
 }
 
-void Robot::Damage(VmValue damage)
+void Robot::Damage(f32 damage)
 {
-    if (Health > 0)
-        Health -= damage;
+    //Some damage absorbed by the armor and shields
+    f32 absorbedByShields = Shields * damage;
+    f32 damageThroughShields = damage - absorbedByShields;
+    Armor -= damageThroughShields * ArmorDamageMultiplier;
+
+    //Damage absorbed by shields gets turned into heat
+    Heat += absorbedByShields;
 }
 
 bool Robot::PointInChassis(const Vec2<f32>& point) const

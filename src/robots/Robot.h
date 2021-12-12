@@ -31,8 +31,8 @@ public:
     Vec2<f32> TurretDirection() const;
     //Points of the triangle that make up the chassis
     std::array<Vec2<f32>, 3> GetChassisPoints() const;
-    //Apply damage to the chassis
-    void Damage(VmValue damage);
+    //Apply damage to bot. Shields and armor can mitigate this.
+    void Damage(f32 damage);
     //Returns true if the point lies within the chassis
     bool PointInChassis(const Vec2<f32>& point) const;
     //Returns true if the robot chassis lies within the rectangle
@@ -45,9 +45,13 @@ public:
     f32 Angle = 0; //Robot chassis angle in degress
     f32 Speed = 0; //Current speed
     f32 TurretAngle = 0;
-    f32 Health = MaxHealth;
     f32 Heat = 0.0f;
-    f32 Armor = 0.0f;
+    f32 Armor = 1.0f;
+    f32 MaxArmor = 1.0f;
+    f32 Engine = 1.0f;
+    f32 Heatsink = 1.0f;
+    f32 Shields = 0.0f;
+    f32 ArmorDamageMultiplier = 1.0f;
     f32 Accuracy = 0.0f; //Accuracy of last scanner activation. Difference in degrees between the turret direction and the direction of the detected bot
     bool ShieldOn = true;
     VmValue NumMines = MaxMines;
@@ -64,17 +68,28 @@ public:
     static const inline f32 RadarSonarRange = 150.0f;
     static const inline f32 RadarSonarFrequency = 1.0f / 3.0f;
     static const inline f32 ScannerFrequency = 1.0f / 3.0f;
-    static const inline f32 HeatsinkCapacity = 1.0f;
     static const inline f32 MaxHeat = 500.0f;
     static const inline f32 HeatDamageThreshold = MaxHeat * 0.8f;
     static const inline f32 OverHeatDamageFrequency = 0.25f;
     static const inline f32 HeatPerTurretShot = 2.5f;
-    static const inline f32 MaxHealth = 10.0f;
+    static const inline u32 MaxConfigPoints = 12; //Total config points to be spread between scanner, turret, armor, engine, heatsinks, mines, and shield
+    static const inline f32 MineDamage = 0.15f; //Damage caused by mines at the center of the detonation. Damage decreases with distance.
+    static const inline f32 ArmorBase = 12.0f; //Base armor level that the armor config directive modifies
 private:
     //Called by the VM when ports are read (ipo) and written (opo)
     //This updates the ports with the latest hardware state on reads, and lets hardware respond to writes.
     void OnPortRead(Port port, f32 deltaTime);
     void OnPortWrite(Port port, VmValue value, f32 deltaTime);
+    void Init();
+
+    //Setup hardware based on values from #config directions in assembly
+    void SetupScanner(VmValue points);
+    void SetupTurret(VmValue points);
+    void SetupArmor(VmValue points);
+    void SetupEngine(VmValue points);
+    void SetupHeatsink(VmValue points);
+    void SetupMines(VmValue points);
+    void SetupShield(VmValue points);
 
     std::filesystem::file_time_type _sourceFileLastWriteTime;
     std::string _sourceFilePath;
@@ -85,6 +100,8 @@ private:
     f32 _sonarTimer = 0.0f;
     f32 _scannerTimer = 0.0f;
     f32 _scannerArcWidth = 32.0f; //[0, 64]
+    f32 _scannerRange = 250.0f;
+    f32 _turretDamage = 1.0f;
 
     //True if the hardware was used this frame. Used by renderer to draw circles/arcs/etc.
     bool _sonarOn = false;

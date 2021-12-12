@@ -32,6 +32,9 @@ Result<void, VMError> VM::LoadProgram(const VmProgram& program)
     _variablesSizeBytes = program.Header.VariablesSize;
     memcpy(Memory + VM::RESERVED_BYTES + _instructionsSizeBytes, program.Variables.data(), program.Header.VariablesSize);
 
+    //Copy misc data from program
+    Config = program.Config;
+
     //Reset flags and registers
     FlagSign = false;
     FlagZero = false;
@@ -362,4 +365,20 @@ u32 VM::GetInstructionDuration(const Instruction& instruction) const
 
         return search->second;
     }
+}
+
+std::optional<VmValue> VM::GetConfig(const std::string& name)
+{
+    const std::string nameLower = String::ToLower(name);
+    auto search = std::find_if(Config.begin(), Config.end(), [nameLower](const VmConfig& config) { return config.Name == nameLower; });
+    bool found = search != Config.end();
+    return found ? search->Value : std::optional<VmValue>{};
+}
+
+VmValue VM::GetConfigOr(const std::string& name, VmValue or)
+{
+    const std::string nameLower = String::ToLower(name);
+    auto search = std::find_if(Config.begin(), Config.end(), [nameLower](const VmConfig& config) { return config.Name == nameLower; });
+    bool found = search != Config.end();
+    return found ? search->Value : or;
 }

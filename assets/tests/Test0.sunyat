@@ -2,6 +2,15 @@
 ;;; Test0.sunyat
 ;;; Uses sonar to detect nearby robots and shoot them
 
+; Using default config. Total of 12 points to distribute between hardware.
+#config scanner 5
+#config turret 2
+#config armor 2
+#config engine 2
+#config heatsink 1
+#config mines 0
+#config shield 0
+
 ; Trigger sonar. Stores heading of the nearest bot in r0
 ipo r0 P_SONAR
 ; Set turret to heading of nearest bot and shoot

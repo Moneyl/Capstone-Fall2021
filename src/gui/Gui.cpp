@@ -464,7 +464,7 @@ void Gui::DrawRobotList()
 
             //Health
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.259f, 0.6f, 0.114f, 1.0f });
-            ImGui::ProgressBar(robot->Health / robot->MaxHealth, progressBarSize, "Health");
+            ImGui::ProgressBar(robot->Armor / robot->MaxArmor, progressBarSize, "Armor");
             ImGui::PopStyleColor();
 
             //Heat

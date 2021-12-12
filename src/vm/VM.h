@@ -43,6 +43,9 @@ public:
     //Get the number of cycles it takes to execute an instruction. Returns u32_max if the instruction is unsupported.
     u32 GetInstructionDuration(const Instruction& instruction) const;
 
+    std::optional<VmValue> GetConfig(const std::string& name);
+    VmValue GetConfigOr(const std::string& name, VmValue or = 0);
+
     u8 Memory[VM::MEMORY_SIZE] = { 0 };
     Register Registers[VM::NUM_REGISTERS] = { 0 };
     Register PC = VM::RESERVED_BYTES; //Memory address of the next instruction to be executed
@@ -55,6 +58,9 @@ public:
     //Called when ports are read or written to
     std::function<void(Port port, f32 deltaTime)> OnPortRead;  //Called before the VM stores the port value in a register. That way the callback can update the port value.
     std::function<void(Port port, VmValue value, f32 deltaTime)> OnPortWrite; //Called after the VM updates the port value. That way the callback can update the hardware with the new port value.
+
+    //Config values
+    std::vector<VmConfig> Config = {};
 
 private:
     //Executes _instruction and increments PC

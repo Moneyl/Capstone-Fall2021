@@ -49,6 +49,7 @@ enum class Token
     Pop = (u32)Opcode::Pop,
     Ipo = (u32)Opcode::Ipo,
     Opo = (u32)Opcode::Opo,
+    Config,
     Register0,
     Register1,
     Register2,
