@@ -104,6 +104,7 @@ private:
     f32 _scannerArcWidth = 32.0f; //[0, 64]
     f32 _scannerRange = 250.0f;
     f32 _turretDamage = 1.0f;
+    f32 _totalTime = 0.0f; //Sum of all delta times passed into ::Update()
 
     //True if the hardware was used this frame. Used by renderer to draw circles/arcs/etc.
     bool _sonarOn = false;

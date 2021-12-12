@@ -13,6 +13,7 @@ Robot::Robot()
 
 void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
 {
+    _totalTime += deltaTime;
     _arena = &arena;
     if (Error || Armor <= 0)
         return;
@@ -565,15 +566,19 @@ void Robot::SetupShield(VmValue points)
     case 1:
     case 2:
         Shields = 0.0f;
+        ShieldOn = false;
         break;
     case 3:
         Shields = 2.0f / 3.0f;
+        ShieldOn = true;
         break;
     case 4:
         Shields = 1.0f / 2.0f;
+        ShieldOn = true;
         break;
     case 5:
         Shields = 1.0f / 3.0f;
+        ShieldOn = true;
         break;
     default:
         printf("Out of range config value for 'shield' of %d\n", points);
@@ -589,6 +594,17 @@ void Robot::Draw(Renderer* renderer)
         renderer->DrawCircle(Position, RadarSonarRange, ColorWhite); //Sonar/radar arc
     if (_scannerOn)
         renderer->DrawArc(Position, _scannerRange, Angle, _scannerArcWidth, ColorWhite, 10); //Scanner arc
+    if (ShieldOn)
+    {
+        //Vary shield color with time
+        const f32 timeMultiplier = 3.0f; //Adjust color change speed
+        const f32 sinTime2 = sin(_totalTime * timeMultiplier) * sin(_totalTime * timeMultiplier); //Use squared variants for range [0, 1]
+        const f32 cosTime2 = cos(_totalTime * timeMultiplier * 1.5f) * cos(_totalTime * timeMultiplier * 1.5f); //Cos also multiplied by 1.5 to get slightly different frequency
+        u8 g = (u8)(255.0f * sinTime2);
+        u8 b = (u8)(255.0f * cosTime2);
+        u8 r = (u8)((f32)g + (f32)b / 2.0f);
+        renderer->DrawCircle(Position, 15.0f, { r, g, b, 255 }); //Shield circle
+    }
 
     _sonarOn = false;
     _radarOn = false;
@@ -597,7 +613,6 @@ void Robot::Draw(Renderer* renderer)
 
 void Robot::LoadProgramFromSource(std::string_view inFilePath)
 {
-    Vm->LoadProgramFromSource(inFilePath);
     _sourceFileLastWriteTime = std::filesystem::last_write_time(inFilePath);
     _sourceFilePath = inFilePath;
 }
@@ -651,7 +666,7 @@ std::array<Vec2<f32>, 3> Robot::GetChassisPoints() const
 void Robot::Damage(f32 damage)
 {
     //Some damage absorbed by the armor and shields
-    f32 absorbedByShields = Shields * damage;
+    f32 absorbedByShields = ShieldOn ? Shields * damage : 0.0f;
     f32 damageThroughShields = damage - absorbedByShields;
     Armor -= damageThroughShields * ArmorDamageMultiplier;
 

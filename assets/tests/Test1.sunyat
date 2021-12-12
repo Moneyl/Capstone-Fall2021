@@ -2,13 +2,13 @@
 ;;; Test1.sunyat
 ;;; Simple infinite loop. Switches between forward and backwards movement periodically
 
-#config scanner 5
+#config scanner 2
 #config turret 2
 #config armor 2
 #config engine 2
 #config heatsink 1
 #config mines 0
-#config shield 0
+#config shield 3
 
 const MOVE_SPEED 100
 const TURN_RATE 70
