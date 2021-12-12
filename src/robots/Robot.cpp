@@ -3,15 +3,30 @@
 #include "render/Renderer.h"
 #include "Arena.h"
 
+Robot::Robot()
+{
+    //Give each robot a unique ID
+    static u64 id = 0;
+    _id = id++;
+
+    //Bind ports callbacks to VM
+    Vm->OnPortRead = std::bind(&Robot::OnPortRead, this, std::placeholders::_1, std::placeholders::_2);
+    Vm->OnPortWrite = std::bind(&Robot::OnPortWrite, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+}
+
 void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
 {
+    _arena = &arena;
     if (Error || Health <= 0)
         return;
+
+    //Multiplier used to make hardware independent of framerate and cycle rate
+    const f32 timePerCycle = deltaTime / (f32)cyclesToExecute;
 
     //Cycle VM
     for (u32 i = 0; i < cyclesToExecute; i++)
     {
-        Result<void, VMError> cycleResult = Vm->Cycle();
+        Result<void, VMError> cycleResult = Vm->Cycle(timePerCycle);
         if (cycleResult.Error())
         {
             VMError& error = cycleResult.Error().value();
@@ -20,150 +35,163 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
             return;
         }
 
-        //Multiplier used to make hardware independent of framerate and cycle rate
-        const f32 timePerCycle = deltaTime / (f32)cyclesToExecute;
+        //Update hardware timers
+        _turretShootTimer += timePerCycle;
+        _mineLayerTimer += timePerCycle;
+        _sonarTimer += timePerCycle;
+        _radarTimer += timePerCycle;
+        _scannerTimer += timePerCycle;
 
-        //Update robot hardware
         //Movement
-        {
-            const VmValue& steering = Vm->GetPort(Port::Steering);
-            Angle += steering * timePerCycle;
-            TurretAngle += steering * timePerCycle; //Turret rotates with the chassis
-
-            const VmValue& spedometer = Vm->GetPort(Port::Spedometer);
-            Speed = spedometer;
-
-            const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
-            LastPosition = Position;
-            Position += direction * Speed * timePerCycle;
-        }
-        
-        //Turret
-        {
-            VmValue& rotateOffset = Vm->GetPort(Port::TurretRotateOffset);
-            if (rotateOffset != 0)
-            {
-                TurretAngle += rotateOffset * timePerCycle;
-                rotateOffset = 0;
-            }
-            
-            VmValue& rotateAbsolute = Vm->GetPort(Port::TurretRotateAbsolute);
-            if (rotateAbsolute != std::numeric_limits<VmValue>::max())
-            {
-                TurretAngle = rotateAbsolute;
-                rotateAbsolute = std::numeric_limits<VmValue>::max(); //Special value for this port to signal that it's not set
-            }
-
-            VmValue& shoot = Vm->GetPort(Port::TurretShoot);
-            if (shoot != 0 && _turretShootTimer >= TurretShootFrequency)
-            {
-                arena.CreateBullet(Position, TurretDirection(), ID());
-                Heat += HeatPerTurretShot;
-                _turretShootTimer = 0.0f;
-                shoot = 0;
-            }
-            else
-            {
-                _turretShootTimer += timePerCycle;
-            }
-        }
-
-        //Mine layer & detonator
-        {
-            //Lay mines
-            VmValue& mineLayer = Vm->GetPort(Port::MineLayer);
-            if (mineLayer != 0 && NumMines > 0 && _mineLayerTimer >= MineLayerFrequency)
-            {
-                arena.CreateMine(Position, ID());
-                _mineLayerTimer = 0.0f;
-                NumMines--;
-            }
-            else
-            {
-                _mineLayerTimer += timePerCycle;
-            }
-
-            //Detonate laid mines
-            VmValue& mineTrigger = Vm->GetPort(Port::MineTrigger);
-            if (mineTrigger != 0)
-            {
-                for (Mine& mine : arena.Mines)
-                    if (mine.Creator == ID())
-                        arena.DetonateMine(mine);
-            }
-        }
-
-        //Sonar, radar, and scanner
-        {
-            //Find closest bot
-            Robot* closestBot = arena.GetClosestRobot(Position, this);
-            f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
-
-            VmValue& sonar = Vm->GetPort(Port::Sonar);
-            if (sonar != 0 && _sonarTimer >= RadarSonarFrequency)
-            {
-                //Todo: Consider implementing the ipo/opo instructions or equivalent so users can determine which register to write the output to
-                if (closestBot && closestBotDistance <= RadarSonarRange)
-                {
-                    //Write heading of nearest bot to r7
-                    const Vec2<f32> dir = (closestBot->Position - Position).Normalized();
-                    Vm->Registers[7] = dir.AngleUnitDegrees();
-                }
-                _sonarTimer = 0.0f;
-                _sonarOn = true;
-            }
-            else
-            {
-                _sonarTimer += timePerCycle;
-            }
-
-            VmValue& radar = Vm->GetPort(Port::Radar);
-            if (radar != 0 && _radarTimer >= RadarSonarFrequency)
-            {
-                //Write distance of nearest bot to r7
-                if (closestBot && closestBotDistance <= RadarSonarRange)
-                    Vm->Registers[7] = (closestBot->Position - Position).Length();
-
-                _radarTimer = 0.0f;
-                _radarOn = true;
-            }
-            else
-            {
-                _radarTimer += timePerCycle;
-            }
-
-            VmValue& scanner = Vm->GetPort(Port::Scanner);
-            if (scanner != 0 && _scannerTimer >= ScannerFrequency)
-            {
-                //Trigger scanner, write range of nearest target to r7
-                Robot* closestBotArc = arena.GetClosestRobot(Position, this, ToRadians(Angle - _scannerArcWidth), ToRadians(Angle + _scannerArcWidth));
-                if (closestBotArc)
-                    Vm->Registers[7] = (closestBotArc->Position - Position).Length();
-
-                _scannerTimer = 0.0f;
-                _scannerOn = true;
-            }
-            else
-            {
-                _scannerTimer += timePerCycle;
-            }
-
-            VmValue& scannerArc = Vm->GetPort(Port::ScannerArc);
-            if (scannerArc != 0)
-            {
-                _scannerArcWidth = std::min((f32)scannerArc, 64.0f);
-            }
-        }
+        const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
+        LastPosition = Position;
+        Position += direction * Speed * timePerCycle;
 
         //Heatsink
+        Heat -= HeatsinkCapacity * timePerCycle;
+        Heat = std::max(0.0f, Heat);
+        if (Heat >= HeatDamageThreshold)
+            Health -= OverHeatDamageFrequency * timePerCycle;
+    }
+}
+
+void Robot::OnPortRead(Port port, f32 deltaTime)
+{
+    //VM executed ipo. Write hardware state to port if applicable
+    switch (port)
+    {
+        case Port::Spedometer:
+            break;
+        case Port::Heat:
+            break;
+        case Port::Compass:
+            break;
+        case Port::Steering:
+            break;
+        case Port::TurretShoot:
+            break;
+        case Port::TurretRotateOffset:
+            break;
+        case Port::TurretRotateAbsolute:
+            break;
+        case Port::MineLayer:
+            break;
+        case Port::MineTrigger:
+            break;
+        case Port::Sonar: //Is either 0 or the result of the last `opo P_SONAR`
+            break;
+        case Port::Radar: //Is either 0 or the result of the last `opo P_RADAR`
+            break;
+        case Port::Scanner:
+            break;
+        case Port::ScannerArc:
+            break;
+        default:
+            break;
+    }
+}
+
+void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
+{
+    //VM executed opo. Update hardware connected to the port
+    //Ports aren't required to be set to the provided value. It can be discarded after use.
+    switch (port)
+    {
+    case Port::Spedometer:
+        Speed = value;
+        break;
+    case Port::Heat:
+        break;
+    case Port::Compass:
+        break;
+    case Port::Steering:
+        Angle += value * deltaTime;
+        TurretAngle += value * deltaTime; //Turret rotates with the chassis
+        break;
+    case Port::TurretShoot:
+        if (_turretShootTimer >= TurretShootFrequency)
         {
-            Heat -= HeatsinkCapacity * timePerCycle;
-            Heat = std::max(0.0f, Heat);
-            if (Heat >= HeatDamageThreshold)
+            _arena->CreateBullet(Position, TurretDirection(), ID());
+            Heat += HeatPerTurretShot;
+            _turretShootTimer = 0.0f;
+        }
+        break;
+    case Port::TurretRotateOffset:
+        TurretAngle += (f32)value * deltaTime; //Rotate turret by value stored in port
+        break;
+    case Port::TurretRotateAbsolute:
+        TurretAngle = (f32)value; //Set turret angle to the value stored in port
+        break;
+    case Port::MineLayer:
+        if (NumMines > 0 && _mineLayerTimer >= MineLayerFrequency)
+        {
+            _arena->CreateMine(Position, ID());
+            _mineLayerTimer = 0.0f;
+            NumMines--;
+        }
+        break;
+    case Port::MineTrigger:
+        //Detonate laid mines
+        for (Mine& mine : _arena->Mines)
+            if (mine.Creator == ID())
+                _arena->DetonateMine(mine);
+        break;
+    case Port::Sonar:
+        if (_sonarTimer >= RadarSonarFrequency)
+        {
+            //Sonar triggered
+            _sonarTimer = 0.0f;
+            _sonarOn = true;
+
+            //Check for robot in sonar range
+            Robot* closestBot = _arena->GetClosestRobot(Position, this);
+            f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
+            if (closestBot && closestBotDistance <= RadarSonarRange)
             {
-                Health -= OverHeatDamageFrequency * timePerCycle;
+                //Write heading of nearest bot back to the port
+                const Vec2<f32> dir = (closestBot->Position - Position).Normalized();
+                Vm->GetPort(Port::Sonar) = (VmValue)dir.AngleUnitDegrees();
             }
         }
+        break;
+    case Port::Radar:
+        if (_radarTimer >= RadarSonarFrequency)
+        {
+            //Radar triggered
+            _radarTimer = 0.0f;
+            _radarOn = true;
+
+            //Check for robot in radar range
+            Robot* closestBot = _arena->GetClosestRobot(Position, this);
+            f32 closestBotDistance = closestBot ? (closestBot->Position - Position).Length() : std::numeric_limits<f32>::infinity();
+            if (closestBot && closestBotDistance <= RadarSonarRange)
+            {
+                //Write distance of nearest bot back to the port
+                Vm->GetPort(Port::Radar) = (closestBot->Position - Position).Length();
+            }
+        }
+        break;
+    case Port::Scanner:
+        if (_scannerTimer >= ScannerFrequency)
+        {
+            //Scanner triggered
+            _scannerTimer = 0.0f;
+            _scannerOn = true;
+
+            //Check for robot in scanner arc
+            Robot* closestBotArc = _arena->GetClosestRobot(Position, this, ToRadians(Angle - _scannerArcWidth), ToRadians(Angle + _scannerArcWidth));
+            if (closestBotArc)
+            {
+                //Write distance to robot back into the port
+                Vm->GetPort(Port::Scanner) = (closestBotArc->Position - Position).Length();
+            }
+        }
+        break;
+    case Port::ScannerArc:
+        _scannerArcWidth = Range((f32)value, 0.0f, 64.0f);
+        break;
+    default:
+        break;
     }
 }
 
@@ -208,6 +236,11 @@ void Robot::TryReload()
 
         //Successful reload
         Vm = std::move(newVM);
+
+        //Bind ports callbacks to new VM
+        Vm->OnPortRead = std::bind(&Robot::OnPortRead, this, std::placeholders::_1, std::placeholders::_2);
+        Vm->OnPortWrite = std::bind(&Robot::OnPortWrite, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
         printf("Recompiled robot '%s'\n", sourceFileName.c_str());
     }
 }

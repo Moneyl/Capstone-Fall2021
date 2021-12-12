@@ -66,13 +66,13 @@ Result<void, VMError> VM::LoadProgramFromSource(std::string_view inFilePath)
     return LoadProgram(compileResult.Success().value());
 }
 
-Result<void, VMError> VM::Cycle()
+Result<void, VMError> VM::Cycle(f32 deltaTime)
 {
     if (_instruction) //Continue executing instruction
     {
         if (_instructionCyclesRemaining <= 1) //All cycles elapsed, execute instruction
         {
-            Result<void, VMError> result = Execute();
+            Result<void, VMError> result = Execute(deltaTime);
             _instruction = nullptr;
             _instructionCyclesRemaining = 0;
             return result;
@@ -98,7 +98,7 @@ Result<void, VMError> VM::Cycle()
 
         if (_instructionCyclesRemaining <= 1) //Execute the instruction now if it takes 1 cycle
         {
-            Result<void, VMError> result = Execute();
+            Result<void, VMError> result = Execute(deltaTime);
             _instruction = nullptr;
             _instructionCyclesRemaining = 0;
             return result;
@@ -114,7 +114,7 @@ Result<void, VMError> VM::Cycle()
 
 //Decodes and executes _instruction
 //_instruction is fetched by VM::Cycle()
-Result<void, VMError> VM::Execute()
+Result<void, VMError> VM::Execute(f32 deltaTime)
 {
     u32 lastPC = PC; //Store before incrementing for error messages
     PC += sizeof(Instruction);
@@ -263,14 +263,14 @@ Result<void, VMError> VM::Execute()
         Registers[regA] = Pop();
         break;
     case Opcode::Ipo:
+        OnPortRead((Port)value, deltaTime);
         Registers[regA] = GetPort((Port)value); //Value contains the port index. Set via the built in port constants
         break;
     case Opcode::Opo:
-        GetPort((Port)value) = Registers[regA]; //Set port with value of a register
+        OnPortWrite((Port)value, Registers[regA], deltaTime); //Write the value of registerA to the port
         break;
     case Opcode::OpoVal:
-        //This instruction uses different encoding than the rest to fit the opcode, port index, and value in 32 bits
-        GetPort((Port)_instruction->OpPortValue.Port) = _instruction->OpPortValue.Value; //Set port with value
+        OnPortWrite((Port)_instruction->OpPortValue.Port, _instruction->OpPortValue.Value, deltaTime); //Write value to the port. The callback is allowed to discard the value.
         break;
     default:
         return Error(VMError{ VMErrorCode::UnsupportedInstruction, "Unsupported opcode '" + std::to_string((u32)_instruction->Op.Opcode) + "' decoded by VM." });

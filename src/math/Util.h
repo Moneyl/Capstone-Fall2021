@@ -38,3 +38,14 @@ static bool IsPositionInTriangle(const Vec2<f32>& pos, const Vec2<f32>& t0, cons
     bool anyPositive = (d0 > 0) || (d1 > 0) || (d2 > 0);
     return !anyNegative || !anyPositive;
 }
+
+//Adjust value so it's within [min, max] (inclusive)
+static f32 Range(f32 value, f32 min, f32 max)
+{
+    if (value < min)
+        return min;
+    else if (value > max)
+        return max;
+    else
+        return value;
+}

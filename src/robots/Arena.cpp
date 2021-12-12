@@ -17,23 +17,23 @@ void Arena::Update(f32 deltaTime)
     if (CyclesPerSecond != 0) //If CyclesPerSecond == 0, cyclesDelta == NaN. Breaks _cycleAccumulator and subsequent logic
     {
         _cycleAccumulator -= cyclesDelta;
-        for (Robot& robot : Robots)
+        for (Robot* robot : Robots)
         {
-            if (robot.Health <= 0)
+            if (robot->Health <= 0)
                 continue;
 
             //Recompile source file if it was edited
             if (RobotAutoReloadEnabled)
-                robot.TryReload();
+                robot->TryReload();
 
-            robot.Update(*this, cyclesDelta, cyclesToExecute);
+            robot->Update(*this, cyclesDelta, cyclesToExecute);
 
             //Push out of bounds bot back into the arena
             u64 substepCount = 0;
-            const Vec2<f32> velocity = (robot.Position - robot.LastPosition);
-            while (!robot.ChassisInRectangle(Position, Size) && substepCount < Arena::MaxRobotCollisionSubsteps)
+            const Vec2<f32> velocity = (robot->Position - robot->LastPosition);
+            while (!robot->ChassisInRectangle(Position, Size) && substepCount < Arena::MaxRobotCollisionSubsteps)
             {
-                robot.Position -= velocity;
+                robot->Position -= velocity;
                 substepCount++;
             }
         }
@@ -47,14 +47,14 @@ void Arena::Update(f32 deltaTime)
             bullet.Alive = false;
 
         //Detect bullet-robot collisions
-        auto anyHit = std::find_if(Robots.begin(), Robots.end(), [&](const Robot& robot)
-            { return robot.ID() != bullet.Creator && robot.PointInChassis(bullet.Position); });
+        auto anyHit = std::find_if(Robots.begin(), Robots.end(), [&](const Robot* robot)
+            { return robot->ID() != bullet.Creator && robot->PointInChassis(bullet.Position); });
 
         //Handle collision
         if (anyHit != Robots.end())
         {
             //Hit robot. Damage it and delete the bullet
-            anyHit->Damage(bullet.Damage);
+            (*anyHit)->Damage(bullet.Damage);
             bullet.Alive = false;
         }
     }
@@ -63,8 +63,8 @@ void Arena::Update(f32 deltaTime)
     for (Mine& mine : Mines)
     {
         //Detect mine-robot collisions
-        auto anyHit = std::find_if(Robots.begin(), Robots.end(), [&](const Robot& robot)
-            { return robot.ID() != mine.Creator && robot.PointInChassis(mine.Position); });
+        auto anyHit = std::find_if(Robots.begin(), Robots.end(), [&](const Robot* robot)
+            { return robot->ID() != mine.Creator && robot->PointInChassis(mine.Position); });
 
         //Handle collision
         if (anyHit != Robots.end())
@@ -75,7 +75,7 @@ void Arena::Update(f32 deltaTime)
     }
 
     //Erase dead objects
-    EraseIf(Robots, [](const Robot& robot) { return robot.Health <= 0; });
+    EraseIf(Robots, [](const Robot* robot) { return robot->Health <= 0; });
     EraseIf(Bullets, [](const Bullet& bullet) { return !bullet.Alive; });
     EraseIf(Mines, [](const Mine& mine) { return !mine.Alive; });
 }
@@ -84,8 +84,8 @@ void Arena::Draw(Renderer* renderer)
 {
     renderer->DrawRectangleFilled(Position, Size, { 64, 64, 64, 255 }); //Floor
     renderer->DrawRectangle(Position, Size, { 200, 0, 0, 255 }); //Border
-    for (Robot& robot : Robots)
-        robot.Draw(renderer);
+    for (Robot* robot : Robots)
+        robot->Draw(renderer);
 
     for (Bullet& bullet : Bullets)
         renderer->DrawLine(bullet.Position, bullet.Position + bullet.Direction * Bullet::Length, { 255, 0, 0, 255 });
@@ -96,18 +96,21 @@ void Arena::Draw(Renderer* renderer)
 
 void Arena::Reset()
 {
+    for (Robot* robot : Robots)
+        delete robot;
     Robots.clear();
 
     //Create robots
     Vec2<f32> arenaCenter = Position + (Size / 2);
-    Robot& robot = Robots.emplace_back();
-    robot.LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
-    robot.Position.x = arenaCenter.x;
-    robot.Position.y = arenaCenter.y;
-    Robot& robot2 = Robots.emplace_back();
-    robot2.LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test1.sunyat");
-    robot2.Position.x = arenaCenter.x - 100;
-    robot2.Position.y = arenaCenter.y - 50;
+    Robot* robot = Robots.emplace_back(new Robot());
+    robot->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
+    robot->Position.x = arenaCenter.x;
+    robot->Position.y = arenaCenter.y;
+
+    Robot* robot2 = Robots.emplace_back(new Robot());
+    robot2->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test1.sunyat");
+    robot2->Position.x = arenaCenter.x - 100;
+    robot2->Position.y = arenaCenter.y - 50;
 }
 
 void Arena::CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, VmValue damage)
@@ -123,16 +126,16 @@ void Arena::CreateMine(const Vec2<f32>& position, u64 creator, VmValue damage)
 void Arena::DetonateMine(Mine& mine)
 {
     //Damage robots within the explosion radius
-    for (Robot& robot : Robots)
+    for (Robot* robot : Robots)
     {
-        if (robot.ID() == mine.Creator)
+        if (robot->ID() == mine.Creator)
             continue;
 
-        const f32 distance = robot.Position.Distance(mine.Position);
+        const f32 distance = robot->Position.Distance(mine.Position);
         if (distance <= Mine::ExplosionRadius)
         {
             const f32 damage = mine.Damage * (1 / distance); //Damage is inversely proportional with distance
-            robot.Damage(damage);
+            robot->Damage(damage);
         }
     }
     
@@ -143,19 +146,19 @@ Robot* Arena::GetClosestRobot(const Vec2<f32>& position, Robot* exclude, f32 ang
 {
     f32 distance = std::numeric_limits<f32>::infinity();
     Robot* out = nullptr;
-    for (Robot& robot : Robots)
+    for (Robot* robot : Robots)
     {
-        f32 angle = (robot.Position - position).Normalized().AngleUnitRadians();
+        f32 angle = (robot->Position - position).Normalized().AngleUnitRadians();
         if (angle < angleMinRadians || angle > angleMaxRadians)
             continue; //Outside of search arc
-        if (&robot == exclude)
+        if (robot == exclude)
             continue;
 
-        f32 curDist = robot.Position.Distance(position);
+        f32 curDist = robot->Position.Distance(position);
         if (curDist < distance)
         {
             distance = curDist;
-            out = &robot;
+            out = robot;
         }
     }
 

@@ -14,11 +14,7 @@ class Arena;
 class Robot
 {
 public:
-    Robot()
-    {
-        static u64 id = 0;
-        _id = id++; //Give each robot a unique ID
-    }
+    Robot();
 
     //Per frame update
     void Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute);
@@ -71,6 +67,11 @@ public:
     static const inline f32 HeatPerTurretShot = 0.25f;
     static const inline f32 MaxHealth = 10.0f;
 private:
+    //Called by the VM when ports are read (ipo) and written (opo)
+    //This updates the ports with the latest hardware state on reads, and lets hardware respond to writes.
+    void OnPortRead(Port port, f32 deltaTime);
+    void OnPortWrite(Port port, VmValue value, f32 deltaTime);
+
     std::filesystem::file_time_type _sourceFileLastWriteTime;
     std::string _sourceFilePath;
     u64 _id;
@@ -85,4 +86,5 @@ private:
     bool _sonarOn = false;
     bool _radarOn = false;
     bool _scannerOn = false;
+    Arena* _arena = nullptr;
 };

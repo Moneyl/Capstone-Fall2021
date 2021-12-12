@@ -177,7 +177,7 @@ void Gui::DrawVariables()
         ImGui::End();
         return;
     }
-    Robot& robot = _app->Arena.Robots[_robotIndex];
+    Robot* robot = _app->Arena.Robots[_robotIndex];
 
     //Variables table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
@@ -193,14 +193,14 @@ void Gui::DrawVariables()
         ImGui::TableHeadersRow();
 
         //Fill table
-        const Span<VmValue> variables = robot.Vm->Variables();
+        const Span<VmValue> variables = robot->Vm->Variables();
         for (const VmValue& variable : variables)
         {
             ImGui::TableNextRow();
 
             //Column 0
             ImGui::TableSetColumnIndex(0);
-            ImGui::Text(std::to_string((u8*)&variable - robot.Vm->Memory));
+            ImGui::Text(std::to_string((u8*)&variable - robot->Vm->Memory));
 
             //Column 1
             ImGui::TableSetColumnIndex(1);
@@ -233,7 +233,7 @@ void Gui::DrawStack()
         ImGui::End();
         return;
     }
-    Robot& robot = _app->Arena.Robots[_robotIndex];
+    Robot* robot = _app->Arena.Robots[_robotIndex];
 
     //Stack table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
@@ -248,7 +248,7 @@ void Gui::DrawStack()
         ImGui::TableHeadersRow();
 
         //Fill table
-        for (u32 i = VM::MEMORY_SIZE - sizeof(VmValue); i > robot.Vm->SP; i -= sizeof(VmValue))
+        for (u32 i = VM::MEMORY_SIZE - sizeof(VmValue); i > robot->Vm->SP; i -= sizeof(VmValue))
         {
             ImGui::TableNextRow();
 
@@ -258,7 +258,7 @@ void Gui::DrawStack()
 
             //Column 1
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(std::to_string(*(VmValue*)&robot.Vm->Memory[i]));
+            ImGui::Text(std::to_string(*(VmValue*)&robot->Vm->Memory[i]));
         }
 
         ImGui::EndTable();
@@ -287,7 +287,7 @@ void Gui::DrawDisassembler()
         ImGui::End();
         return;
     }
-    Robot& robot = _app->Arena.Robots[_robotIndex];
+    Robot* robot = _app->Arena.Robots[_robotIndex];
 
     //Options
     static bool useRealOpcodeNames = false;
@@ -318,12 +318,12 @@ void Gui::DrawDisassembler()
         ImGui::TableHeadersRow();
 
         //Fill table
-        const Span<Instruction> instructions = robot.Vm->Instructions();
+        const Span<Instruction> instructions = robot->Vm->Instructions();
         for (u32 i = 0; i < instructions.size(); i++)
         {
             ImGui::TableNextRow();
             const Instruction& instruction = instructions[i];
-            u32 address = (u8*)&instruction - robot.Vm->Memory; //Instruction address in VM memory
+            u32 address = (u8*)&instruction - robot->Vm->Memory; //Instruction address in VM memory
 
             //Column 0
             ImGui::TableSetColumnIndex(0);
@@ -335,7 +335,7 @@ void Gui::DrawDisassembler()
 
             //Column 2
             ImGui::TableSetColumnIndex(2);
-            ImGui::Text(std::to_string(robot.Vm->GetInstructionDuration(instruction)).c_str());
+            ImGui::Text(std::to_string(robot->Vm->GetInstructionDuration(instruction)).c_str());
         }
 
         ImGui::EndTable();
@@ -364,15 +364,15 @@ void Gui::DrawVmState()
         ImGui::End();
         return;
     }
-    Robot& robot = _app->Arena.Robots[_robotIndex];
+    Robot* robot = _app->Arena.Robots[_robotIndex];
 
     const u32 min = 0;
     const u32 max = 1000;
     ImGui::SliderScalar("Cycles/second", ImGuiDataType_U32, &_app->Arena.CyclesPerSecond, &min, &max);
-    ImGui::LabelAndValue("Memory size:", std::to_string(robot.Vm->MEMORY_SIZE) + " bytes");
-    ImGui::LabelAndValue("Program size:", std::to_string(robot.Vm->InstructionsSize()) + " bytes");
-    ImGui::LabelAndValue("Variables size:", std::to_string(robot.Vm->VariablesSize()) + " bytes");
-    ImGui::LabelAndValue("Stack size:", std::to_string(robot.Vm->StackSize()) + "/" + std::to_string(robot.Vm->MaxStackSize()) + " bytes");
+    ImGui::LabelAndValue("Memory size:", std::to_string(robot->Vm->MEMORY_SIZE) + " bytes");
+    ImGui::LabelAndValue("Program size:", std::to_string(robot->Vm->InstructionsSize()) + " bytes");
+    ImGui::LabelAndValue("Variables size:", std::to_string(robot->Vm->VariablesSize()) + " bytes");
+    ImGui::LabelAndValue("Stack size:", std::to_string(robot->Vm->StackSize()) + "/" + std::to_string(robot->Vm->MaxStackSize()) + " bytes");
 
     //Draw registers in table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
@@ -397,7 +397,7 @@ void Gui::DrawVmState()
 
             //Column 1
             ImGui::TableSetColumnIndex(1);
-            ImGui::Text(std::to_string(robot.Vm->Registers[i]));
+            ImGui::Text(std::to_string(robot->Vm->Registers[i]));
         }
 
         //Special registers
@@ -406,14 +406,14 @@ void Gui::DrawVmState()
         ImGui::TableSetColumnIndex(0);
         ImGui::Text("PC");
         ImGui::TableSetColumnIndex(1);
-        ImGui::Text(std::to_string(robot.Vm->PC));
+        ImGui::Text(std::to_string(robot->Vm->PC));
 
         //SP
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         ImGui::Text("SP");
         ImGui::TableSetColumnIndex(1);
-        ImGui::Text(std::to_string(robot.Vm->SP));
+        ImGui::Text(std::to_string(robot->Vm->SP));
 
         ImGui::EndTable();
     }
@@ -443,8 +443,8 @@ void Gui::DrawRobotList()
     {
         for (u32 i = 0; i < _app->Arena.Robots.size(); i++)
         {
-            Robot& robot = _app->Arena.Robots[i];
-            std::string label = "Robot " + std::to_string(i) + " - " + std::filesystem::path(robot.SourcePath()).filename().string();
+            Robot* robot = _app->Arena.Robots[i];
+            std::string label = "Robot " + std::to_string(i) + " - " + std::filesystem::path(robot->SourcePath()).filename().string();
             bool selected = (i == _robotIndex);
 
             //Draw selectable box for robot
@@ -464,12 +464,12 @@ void Gui::DrawRobotList()
 
             //Health
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.259f, 0.6f, 0.114f, 1.0f });
-            ImGui::ProgressBar(robot.Health / robot.MaxHealth, progressBarSize, "Health");
+            ImGui::ProgressBar(robot->Health / robot->MaxHealth, progressBarSize, "Health");
             ImGui::PopStyleColor();
 
             //Heat
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.6f, 0.145f, 0.114f, 1.0f });
-            ImGui::ProgressBar(robot.Heat / robot.MaxHeat, progressBarSize, "Heat");
+            ImGui::ProgressBar(robot->Heat / robot->MaxHeat, progressBarSize, "Heat");
             ImGui::PopStyleColor();
 
             //Set cursor to end of the selectable

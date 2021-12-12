@@ -5,8 +5,8 @@
 #include "utility/Span.h"
 #include "Instruction.h"
 #include "Constants.h"
-#include "VM.h"
 #include <unordered_map>
+#include <functional>
 
 struct VMError;
 
@@ -23,7 +23,7 @@ public:
     Result<void, VMError> LoadProgram(const VmProgram& program); //Load program binary
     Result<void, VMError> LoadProgram(std::string_view inFilePath); //Load program binary from file
     Result<void, VMError> LoadProgramFromSource(std::string_view inFilePath); //Compile and load program from source file
-    Result<void, VMError> Cycle(); //Run a single clock cycle
+    Result<void, VMError> Cycle(f32 deltaTime); //Run a single clock cycle. deltaTime is time since elapsed since last Cycle. Passed to port callbacks.
     VmValue Load(VmValue address); //Read value from VM memory
     void Store(VmValue address, VmValue value); //Set value in VM memory
     void Push(VmValue value); //Push a value onto the stack
@@ -52,9 +52,13 @@ public:
     bool FlagZero = false; //True when result == 0
     bool FlagSign = false; //True when result < 0
 
+    //Called when ports are read or written to
+    std::function<void(Port port, f32 deltaTime)> OnPortRead;  //Called before the VM stores the port value in a register. That way the callback can update the port value.
+    std::function<void(Port port, VmValue value, f32 deltaTime)> OnPortWrite; //Called after the VM updates the port value. That way the callback can update the hardware with the new port value.
+
 private:
     //Executes _instruction and increments PC
-    Result<void, VMError> Execute();
+    Result<void, VMError> Execute(f32 deltaTime);
 
     u32 _instructionsSizeBytes = 0; //The number of bytes that the program takes up in memory
     u32 _variablesSizeBytes = 0; //The number of bytes that variables take up in memory

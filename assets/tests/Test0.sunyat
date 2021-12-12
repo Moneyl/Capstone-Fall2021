@@ -2,6 +2,9 @@
 ;;; Test0.sunyat
 ;;; Uses sonar to detect nearby robots and shoot them
 
-opo P_SONAR 1
-opo P_TURRET_ABS r7 ; TODO: Come up with better way of outputting. Call opo then call ipo right after?
-opo P_SHOOT 1
+; Trigger sonar then read back the result
+opo P_SONAR 0
+ipo r0 P_SONAR
+; Set turret to heading of nearest bot and shoot
+opo P_TURRET_ABS r0
+opo P_SHOOT 0

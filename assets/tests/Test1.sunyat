@@ -3,13 +3,12 @@
 ;;; Simple infinite loop. Switches between forward and backwards movement periodically
 
 const MOVE_SPEED 100
-const TURN_RATE 20
+const TURN_RATE 70
 const MOVE_DURATION 50 ; How long to move in one direction before moving in the other
 
 ; Increment r0 forever
 !main
 add r0 1
-opo P_STEERING TURN_RATE ; Constant turning
 
 ; if r0 > 15 then move forward,
 cmp r0 MOVE_DURATION
@@ -29,6 +28,7 @@ jmp !main
 ; Move forward & turn clockwise
 !forward
 opo P_SPEDOMETER MOVE_SPEED
+opo P_STEERING TURN_RATE
 jmp !reset_check
 
 ; Move backwards & turn counter clockwise
@@ -36,6 +36,7 @@ jmp !reset_check
 mov r2 MOVE_SPEED
 neg r2
 opo P_SPEDOMETER r2
+opo P_STEERING TURN_RATE
 opo P_SHOOT 1
 opo P_TURRET_ABS 0 ; Keep turret facing east when going backwards
 opo P_MINELAYER 0xFFFF
