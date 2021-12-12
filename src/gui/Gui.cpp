@@ -374,11 +374,17 @@ void Gui::DrawVmState()
     ImGui::LabelAndValue("Variables size:", std::to_string(robot->Vm->VariablesSize()) + " bytes");
     ImGui::LabelAndValue("Stack size:", std::to_string(robot->Vm->StackSize()) + "/" + std::to_string(robot->Vm->MaxStackSize()) + " bytes");
 
+    ImGui::Separator();
+    _app->Fonts.Medium.Push();
+    ImGui::Text("Registers");
+    _app->Fonts.Medium.Pop();
+    ImGui::Separator();
+
     //Draw registers in table
     ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
         ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
         ImGuiTableFlags_Hideable;
-    if (ImGui::BeginTable("RegistersTable", 2, tableFlags))
+    if (ImGui::BeginTable("RegistersTable", 2, tableFlags, { 0.0f, 200.0f }))
     {
         //Setup columns
         ImGui::TableSetupScrollFreeze(0, 1); //Make header row always visible when scrolling
@@ -414,6 +420,37 @@ void Gui::DrawVmState()
         ImGui::Text("SP");
         ImGui::TableSetColumnIndex(1);
         ImGui::Text(std::to_string(robot->Vm->SP));
+
+        ImGui::EndTable();
+    }
+
+    ImGui::Separator();
+    _app->Fonts.Medium.Push();
+    ImGui::Text("Config");
+    _app->Fonts.Medium.Pop();
+    ImGui::Separator();
+
+    if (ImGui::BeginTable("ConfigTable", 2, tableFlags, { 0.0f, 250.0f }))
+    {
+        //Setup columns
+        ImGui::TableSetupScrollFreeze(0, 1); //Make header row always visible when scrolling
+        ImGui::TableSetupColumn("Name", ImGuiTableFlags_None);
+        ImGui::TableSetupColumn("Value", ImGuiTableFlags_None);
+        ImGui::TableHeadersRow();
+
+        //Fill table
+        for (VmConfig& config : robot->Vm->Config)
+        {
+            ImGui::TableNextRow();
+
+            //Column 0
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text(config.Name.c_str());
+
+            //Column 1
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text(std::to_string(config.Value));
+        }
 
         ImGui::EndTable();
     }
