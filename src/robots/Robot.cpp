@@ -615,6 +615,8 @@ void Robot::LoadProgramFromSource(std::string_view inFilePath)
 {
     _sourceFileLastWriteTime = std::filesystem::last_write_time(inFilePath);
     _sourceFilePath = inFilePath;
+    Vm->LoadProgramFromSource(inFilePath);
+    Init();
 }
 
 void Robot::TryReload()
