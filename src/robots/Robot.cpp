@@ -217,7 +217,11 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
         _scannerArcWidth = Range((f32)value, 0.0f, 64.0f);
         break;
     case Port::Throttle:
-        Speed = value;
+    {
+        f32 throttleNormalized = Range((f32)value / 100.0f, -1.0f, 1.0f); //Adjust port value range from [-100, 100] to [0.0f, 1.0f]
+        f32 newSpeed = throttleNormalized * MaxSpeed;
+        Speed = newSpeed;
+    }
         break;
     case Port::Heat:
         break;
@@ -494,6 +498,7 @@ void Robot::SetupEngine(VmValue points)
         printf("Out of range config value for 'engine' of %d\n", points);
         break;
     }
+    MaxSpeed = SpeedBase * Engine;
 }
 
 void Robot::SetupHeatsink(VmValue points)

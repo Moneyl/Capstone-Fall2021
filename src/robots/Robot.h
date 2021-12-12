@@ -46,11 +46,12 @@ public:
     f32 Speed = 0; //Current speed
     f32 TurretAngle = 0;
     f32 Heat = 0.0f;
-    f32 Armor = 1.0f;
-    f32 MaxArmor = 1.0f;
+    f32 Armor = ArmorBase;
+    f32 MaxArmor = ArmorBase;
     f32 Engine = 1.0f;
     f32 Heatsink = 1.0f;
     f32 Shields = 0.0f;
+    f32 MaxSpeed = SpeedBase;
     f32 ArmorDamageMultiplier = 1.0f;
     f32 Accuracy = 0.0f; //Accuracy of last scanner activation. Difference in degrees between the turret direction and the direction of the detected bot
     bool ShieldOn = true;
@@ -75,6 +76,7 @@ public:
     static const inline u32 MaxConfigPoints = 12; //Total config points to be spread between scanner, turret, armor, engine, heatsinks, mines, and shield
     static const inline f32 MineDamage = 0.15f; //Damage caused by mines at the center of the detonation. Damage decreases with distance.
     static const inline f32 ArmorBase = 12.0f; //Base armor level that the armor config directive modifies
+    static const inline f32 SpeedBase = 150.0f; //Base max speed that the engine config directive modifies
 private:
     //Called by the VM when ports are read (ipo) and written (opo)
     //This updates the ports with the latest hardware state on reads, and lets hardware respond to writes.
