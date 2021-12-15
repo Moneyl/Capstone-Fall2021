@@ -49,3 +49,11 @@ static f32 Range(f32 value, f32 min, f32 max)
     else
         return value;
 }
+
+static f32 RandomFloat(const f32 min = 0.0f, const f32 max = 1.0f)
+{
+    //Get random number in range [0.0, 1.0]
+    f32 value = (f32)rand() / (f32)RAND_MAX;
+    //Adjust random number to range [min, max] and return
+    return (value * (max - min)) + min;
+}

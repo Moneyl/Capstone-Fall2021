@@ -12,3 +12,9 @@ void EraseIf(std::vector<T>& vec, Pred predicate)
     //Erase the removed items
     vec.erase(eraseStart, vec.end());
 }
+
+template<class T>
+bool Contains(const std::vector<T>& vec, T value)
+{
+    return std::find(vec.begin(), vec.end(), value) != vec.end();
+}

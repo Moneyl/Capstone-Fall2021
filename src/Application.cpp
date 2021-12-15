@@ -69,10 +69,9 @@ bool Application::MainLoop()
         while (SDL_PollEvent(&event))
             HandleEvent(&event);
 
+        UpdateKeybinds();
         Arena.Update(_deltaTime);
         Arena.Draw(&Renderer);
-        if (Input.KeyPressed(SDL_KeyCode::SDLK_F1))
-            Arena.Reset();
 
         //Update app logic
         Gui.Update(_deltaTime);
@@ -127,4 +126,12 @@ void Application::HandleWindowResize(i32 newWidth, i32 newHeight)
     _windowWidth = newWidth;
     _windowHeight = newHeight;
     Renderer.HandleWindowResize(newWidth, newHeight);
+}
+
+void Application::UpdateKeybinds()
+{
+    if (Input.KeyPressed(SDL_KeyCode::SDLK_F1))
+        Arena.Reset();
+    if (Input.KeyPressed(SDL_KeyCode::SDLK_F2))
+        Gui.ShowTournamentPopup = true;
 }

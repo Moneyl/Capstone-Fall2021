@@ -10,9 +10,9 @@
 #config mines 0
 #config shield 3
 
-const MOVE_SPEED 100
-const TURN_RATE 70
-const MOVE_DURATION 50 ; How long to move in one direction before moving in the other
+const MOVE_SPEED 75
+const TURN_RATE 150
+const MOVE_DURATION 10 ; How long to move in one direction before moving in the other
 
 ; Increment r0 forever
 !main
@@ -27,7 +27,7 @@ jls !backward
 
 ; if r0 >= 30, r1++ and r0 = 0
 !reset_check
-cmp r0 100
+cmp r0 20
 jls !main
 add r1 1
 mov r0 0

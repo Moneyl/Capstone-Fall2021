@@ -4,6 +4,31 @@
 #include "utility/Algorithms.h"
 #include <algorithm>
 
+Arena::Arena()
+{
+    //Get list of robots in the /robots folder
+    std::vector<std::string> robotOptions = {};
+    for (auto& entry : std::filesystem::directory_iterator(BuildConfig::RobotFolderPath))
+        if (entry.is_regular_file() && entry.path().extension() == ".sunyat")
+            robotOptions.push_back(entry.path().filename().replace_extension("").string());
+
+    //Pick a random set of robots to use in ::Reset() if none are provided
+    size_t robotsToChoose = std::min((size_t)4, robotOptions.size());
+    for (size_t i = 0; i < robotsToChoose; i++)
+    {
+        while (true)
+        {
+            //Pick a random bot that hasn't already been chosen
+            std::string newBot = robotOptions[rand() % robotOptions.size()];
+            if (Contains(_robotList, newBot))
+                continue;
+
+            _robotList.push_back(newBot);
+            break;
+        }
+    }
+}
+
 void Arena::Update(f32 deltaTime)
 {
     //Update robots
@@ -82,27 +107,46 @@ void Arena::Draw(Renderer* renderer)
         renderer->DrawRectangleFilledCentered(mine.Position, { Mine::Size, Mine::Size }, { 255, 0, 0, 255 });
 }
 
-void Arena::Reset()
+void Arena::Reset(const std::vector<std::string>& botsToAdd)
 {
+    //Clear arena
     for (Robot* robot : Robots)
         delete robot;
     Robots.clear();
-
-    //Create robots
-    Vec2<f32> arenaCenter = Position + (Size / 2);
-    Robot* robot = Robots.emplace_back(new Robot());
-    robot->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test0.sunyat");
-    robot->Position.x = arenaCenter.x;
-    robot->Position.y = arenaCenter.y;
-
-    Robot* robot2 = Robots.emplace_back(new Robot());
-    robot2->LoadProgramFromSource(BuildConfig::AssetFolderPath + "tests/Test1.sunyat");
-    robot2->Position.x = arenaCenter.x - 100;
-    robot2->Position.y = arenaCenter.y - 50;
-
-    //Clear other entities
     Bullets.clear();
     Mines.clear();
+
+    //Get list of bots to add to the arena
+    std::vector<std::string> botsToAddFinal = {};
+    if (!botsToAdd.empty())
+    {
+        //Use provided bots if available
+        botsToAddFinal = botsToAdd;
+        _seed = time(NULL);
+    }
+    else
+    {
+        //Use last set of bots if none provided
+        botsToAddFinal = _robotList;
+    }
+
+    //Seed rand(), used by RandomFloat() to generate robot positions
+    _robotList = botsToAddFinal;
+    srand(_seed);
+
+    //Add bots to the arena
+    Vec2<f32> arenaCenter = Position + (Size / 2.0f);
+    for (const std::string& name : botsToAddFinal)
+    {
+        //Create bot
+        Robot* robot = Robots.emplace_back(new Robot());
+        robot->LoadProgramFromSource(BuildConfig::RobotFolderPath + name + ".sunyat");
+        
+        //Random position
+        robot->Position = Position;
+        robot->Position.x += RandomFloat(0.05f, 0.95f) * Size.x;
+        robot->Position.y += RandomFloat(0.05f, 0.95f) * Size.y;
+    }
 }
 
 void Arena::CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, f32 damage)

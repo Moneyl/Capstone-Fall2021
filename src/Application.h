@@ -32,6 +32,7 @@ private:
     bool Shutdown();
     void HandleEvent(SDL_Event* event);
     void HandleWindowResize(i32 newWidth, i32 newHeight);
+    void UpdateKeybinds();
 
     //Main loop will exit and close the app when this is true
     bool _quit = false;

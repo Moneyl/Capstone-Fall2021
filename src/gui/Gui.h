@@ -12,6 +12,7 @@ public:
     Gui(Application* app);
 
     void Update(f32 deltaTime);
+    bool ShowTournamentPopup = false;
 
 private:
     //Draw main menu bar at the top of the window
@@ -32,6 +33,8 @@ private:
     void DrawNoRobotWarning();
     //Draw settings window. Lists all CVars with ShowInSettings set to true.
     void DrawSettings();
+    //Tournament tool. Pick settings and robots to fight in the tournament.
+    void DrawTournamentPopup();
 
     Application* _app = nullptr;
     i32 _robotIndex = -1; //Robot selected from the robot list

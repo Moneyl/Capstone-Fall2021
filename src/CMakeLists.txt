@@ -9,6 +9,11 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInf
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_definitions(-DASSET_FOLDER_PATH=\"./assets/\")
 endif()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    add_definitions(-DROBOT_FOLDER_PATH=\"${CMAKE_SOURCE_DIR}/robots/\")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_definitions(-DROBOT_FOLDER_PATH=\"./robots/\")
+endif()
 
 # Recursively add all files in source directory to SOURCES variable
 file(GLOB_RECURSE SOURCES

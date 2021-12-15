@@ -63,6 +63,8 @@ void Gui::Update(f32 deltaTime)
         DrawRobotList();
     if (SettingsVisible)
         DrawSettings();
+    if (ShowTournamentPopup)
+        DrawTournamentPopup();
 }
 
 void Gui::DrawMainMenuBar()
@@ -113,10 +115,12 @@ void Gui::DrawMainMenuBar()
             ImGui::EndMenu();
         }
 
-        if (ImGui::BeginMenu("Tools"))
+        if (ImGui::BeginMenu("Game"))
         {
             ImGui::MenuItem(ICON_FA_SYNC_ALT " Auto reload robots", "", &_app->Arena.RobotAutoReloadEnabled);
             ImGui::TooltipOnPrevious("Auto recompile robot programs when their source file is edited and saved. This also resets the VM (memory, registers, stack, variables, etc).");
+
+            ImGui::MenuItem(ICON_FA_NETWORK_WIRED " Start tournament", "F2", &ShowTournamentPopup);
             ImGui::EndMenu();
         }
 
@@ -476,7 +480,7 @@ void Gui::DrawRobotList()
     ImGui::PushStyleColor(ImGuiCol_FrameBg, ImGui::GetStyle().Colors[ImGuiCol_ChildBg]);
 
     //Draw robot list
-    if (ImGui::BeginListBox("##RobotsList", { -FLT_MIN, ImGui::GetWindowWidth() }))
+    if (ImGui::BeginListBox("##RobotsList", { -FLT_MIN, -FLT_MIN }))
     {
         for (u32 i = 0; i < _app->Arena.Robots.size(); i++)
         {
@@ -671,6 +675,99 @@ void Gui::DrawSettings()
             ImGui::CloseCurrentPopup();
         }
 
+        ImGui::EndPopup();
+    }
+}
+
+void Gui::DrawTournamentPopup()
+{
+    const std::string popupTitle = "Start tournament";
+    static std::vector<std::string> robotOptions = {}; //All robots in the folder at the time of opening the popup
+    static std::vector<std::string> robotList = {}; //Robots chosen to be in the tournament
+
+    //Open and draw popup
+    if (!ImGui::IsPopupOpen(popupTitle.c_str()))
+    {
+        ImGui::OpenPopup(popupTitle.c_str());
+
+        //Fill robotOptions with files in the /robots folder
+        robotOptions.clear();
+        for (auto& entry : std::filesystem::directory_iterator(BuildConfig::RobotFolderPath))
+            if (entry.is_regular_file() && entry.path().extension() == ".sunyat")
+                robotOptions.push_back(entry.path().filename().replace_extension("").string());
+
+        //Reset robot list & pick a few random one
+        robotList.clear();
+        for (size_t i = 0; i < 4; i++)
+        {
+            std::string newBot = robotOptions[rand() % robotOptions.size()];
+            robotList.push_back(newBot);
+        }
+    }
+    if (ImGui::BeginPopupModal(popupTitle.c_str(), &ShowTournamentPopup))//, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        _app->Fonts.Large.Push();
+        ImGui::Text("Robots");
+        _app->Fonts.Large.Pop();
+        ImGui::Separator();
+
+        //Add random bot
+        if (ImGui::Button(ICON_FA_PLUS_SQUARE))
+        {
+            std::string newBot = robotOptions[rand() % robotOptions.size()];
+            robotList.push_back(robotOptions[rand() % robotOptions.size()]);
+        }
+
+        //Draw robot list
+        if (ImGui::BeginListBox("##RobotsList", { -FLT_MIN, 250 }))
+        {
+            //Draw combo selector for each robot
+            size_t i = 0;
+            size_t removeIndex = ULLONG_MAX;
+            for (std::string& robot : robotList)
+            {
+                const std::string id = "##" + std::to_string(i); //Must include index in each combo so they have a unique ID
+                ImGui::PushID(id.c_str());
+                if (ImGui::BeginCombo("##RobotSelector", robot.c_str()))
+                {
+                    for (const std::string& option : robotOptions)
+                    {
+                        bool selected = (robot == option);
+                        if (ImGui::Selectable(option.c_str(), &selected))
+                            robot = option;
+                    }
+
+                    ImGui::EndCombo();
+                }
+                
+                //Robot remove button
+                ImGui::SameLine();
+                if (ImGui::Button(ICON_FA_MINUS_SQUARE))
+                    removeIndex = i; //Removed outside of the loop if removeIndex changed
+                
+                ImGui::PopID();
+                i++;
+            }
+
+            //Remove robot
+            if (removeIndex != ULLONG_MAX)
+                robotList.erase(robotList.begin() + removeIndex);
+
+            ImGui::EndListBox();
+        }
+
+        if (ImGui::Button("Cancel"))
+        {
+            ShowTournamentPopup = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Start"))
+        {
+            _app->Arena.Reset(robotList);
+            ShowTournamentPopup = false;
+            ImGui::CloseCurrentPopup();
+        }
         ImGui::EndPopup();
     }
 }

@@ -40,9 +40,10 @@ struct Mine
 class Arena
 {
 public:
+    Arena();
     void Update(f32 deltaTime);
     void Draw(Renderer* renderer);
-    void Reset(); //Default arena
+    void Reset(const std::vector<std::string>& botsToAdd = {}); //Clear arena and add robots to it. If no robots are provided it will randomly pick a few.
     void CreateBullet(const Vec2<f32>& position, const Vec2<f32>& direction, u64 creator, f32 damage);
     void CreateMine(const Vec2<f32>& position, u64 creator, f32 damage);
     void DetonateMine(Mine& mine);
@@ -59,4 +60,8 @@ public:
 
     //Maximum amount of collision substeps per robot per frame to use pushing a bot back into the arena
     const static inline u64 MaxRobotCollisionSubsteps = 10;
+
+    //Robot list & rand() seed used last. Arena::Reset() uses these if not provided with a new list
+    std::vector<std::string> _robotList = {};
+    unsigned int _seed = 0;
 };
