@@ -138,6 +138,7 @@ public:
         { Port::Armor,                1 },
         { Port::Random,               1 },
         { Port::Shield,               1 },
+        { Port::Accuracy,             1 },
     };
 };
 

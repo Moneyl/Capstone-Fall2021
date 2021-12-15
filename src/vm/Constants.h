@@ -27,6 +27,7 @@ enum class Port
     Armor,
     Random,
     Shield,
+    Accuracy,
     NumPorts,
 };
 
@@ -52,6 +53,7 @@ static std::unordered_map<std::string_view, VmValue> BuiltInConstants =
     { "P_ARMOR", (VmValue)Port::Armor }, { "P_DAMAGE", (VmValue)Port::Armor },
     { "P_RANDOM", (VmValue)Port::Random },
     { "P_SHIELD", (VmValue)Port::Shield },
+    { "P_ACCURACY", (VmValue)Port::Accuracy },
     //{ "", (VmValue)Port:: },
 
     //Interrupts

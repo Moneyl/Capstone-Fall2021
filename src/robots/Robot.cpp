@@ -183,6 +183,9 @@ void Robot::OnPortRead(Port port, f32 deltaTime)
         case Port::Shield:
             Vm->GetPort(Port::Shield) = ShieldOn;
             break;
+        case Port::Accuracy:
+            Vm->GetPort(Port::Accuracy) = Accuracy;
+            break;
         default:
             break;
     }
@@ -257,6 +260,8 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
         break;
     case Port::Shield:
         ShieldOn = Vm->GetPort(Port::Shield) != 0;
+        break;
+    case Port::Accuracy:
         break;
     default:
         break;
