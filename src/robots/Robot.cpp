@@ -30,12 +30,11 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerSecond)
     //Calculate the number of whole cycles that can be executed from the accumulator. There are no partial cycles.
     const f32 timePerCycle = (1.0f / (f32)cyclesPerSecond) * heatSpeedMultiplier;
     const u32 cyclesToExecute = truncf(_cycleAccumulator / timePerCycle);
-    //const f32 effectiveDelta = cyclesToExecute * timePerCycle;
-    _cycleAccumulator -= deltaTime;//effectiveDelta;
+    if (cyclesToExecute != 0)
+        _cycleAccumulator -= timePerCycle * cyclesToExecute;
 
     //Time elapsed during each cycle. Time dependent behavior is multiplied by these to make them framerate & cycle rate independent.
     const f32 cycleDelta = deltaTime / (f32)cyclesToExecute; //Heat independent
-    //const f32 effectiveCycleDelta = effectiveDelta / (f32)cyclesToExecute; //Heat dependent
 
     if (Overheated || cyclesToExecute == 0)
     {
@@ -75,13 +74,6 @@ void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerSecond)
 
 void Robot::UpdateHardware(f32 deltaTime)
 {
-    //Update hardware timers
-    _turretShootTimer += deltaTime;
-    _mineLayerTimer += deltaTime;
-    _sonarTimer += deltaTime;
-    _radarTimer += deltaTime;
-    _scannerTimer += deltaTime;
-
     //Movement
     const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
     Position += direction * Speed * deltaTime;
@@ -119,10 +111,8 @@ void Robot::OnPortRead(Port port, f32 deltaTime)
             Vm->GetPort(Port::MineTrigger) = MaxMines - NumMines; //# of mines laid
             break;
         case Port::Sonar:
-            if (_sonarTimer >= RadarSonarFrequency)
             {
                 //Sonar triggered
-                _sonarTimer = 0.0f;
                 _sonarOn = true;
 
                 //Check for robot in sonar range
@@ -137,10 +127,8 @@ void Robot::OnPortRead(Port port, f32 deltaTime)
             }
             break;
         case Port::Radar:
-            if (_radarTimer >= RadarSonarFrequency)
             {
                 //Radar triggered
-                _radarTimer = 0.0f;
                 _radarOn = true;
 
                 //Check for robot in radar range
@@ -154,10 +142,8 @@ void Robot::OnPortRead(Port port, f32 deltaTime)
             }
             break;
         case Port::Scanner:
-            if (_scannerTimer >= ScannerFrequency)
             {
                 //Scanner triggered
-                _scannerTimer = 0.0f;
                 _scannerOn = true;
 
                 //Check for robot in scanner arc
@@ -215,7 +201,6 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
         TurretAngle += value * deltaTime; //Turret rotates with the chassis
         break;
     case Port::TurretShoot:
-        //if (_turretShootTimer >= TurretShootFrequency)
         {
             //Calculate shoot angle. Can be slightly adjusted by writing a non zero value to the port
             f32 shootAdjustment = Range(Vm->GetPort(Port::TurretShoot), -TurretShootAngleControl, TurretShootAngleControl);
@@ -225,7 +210,6 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
             //Shoot the turret
             _arena->CreateBullet(Position, shootDirection, ID(), _turretDamage);
             Heat += HeatPerTurretShot;
-            _turretShootTimer = 0.0f;
         }
         break;
     case Port::TurretRotateOffset:
@@ -235,10 +219,9 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
         TurretAngle = (f32)value; //Set turret angle to the value stored in port
         break;
     case Port::MineLayer:
-        if (NumMines > 0 && _mineLayerTimer >= MineLayerFrequency)
+        if (NumMines > 0)
         {
             _arena->CreateMine(Position, ID(), MineDamage);
-            _mineLayerTimer = 0.0f;
             NumMines--;
         }
         break;

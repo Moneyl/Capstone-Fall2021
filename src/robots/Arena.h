@@ -51,7 +51,7 @@ public:
 
     Vec2<f32> Position = { 400.0f, 50.0f };
     Vec2<f32> Size = { 1000.0f, 1000.0f };
-    u32 CyclesPerSecond = 200; //# of VM cycles to run each second
+    u32 CyclesPerSecond = 50; //# of VM cycles to run each second
     bool RobotAutoReloadEnabled = true; //Auto recompile robot program when source file is edited
     std::vector<Robot*> Robots = {}; //Stored as pointers so VM port bindings can reference them and not risk invalidation if Robots resizes.
     std::vector<Bullet> Bullets = {};

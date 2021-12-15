@@ -61,15 +61,11 @@ public:
     //Set to true when an error occurs. If true ::Update() is stopped until the error is resolved.
     bool Error = false;
 
-    static const inline f32 TurretLength = 12.0f;
-    static const inline f32 TurretShootFrequency = 1.0f / 5.0f; //Max shots / second of turrets
+    static const inline f32 TurretLength = 12.0f; //Visual only
     static const inline VmValue TurretShootAngleControl = 4; //Num of degrees in either direction bullets can be shifted towards when shooting
-    static const inline f32 MineLayerFrequency = 1.0f / 2.0f; //Max mines that can be laid per second
     static const inline f32 ChassisSize = 10.0f;
     static const inline VmValue MaxMines = 10; //Todo: Make this configurable with #config directives
     static const inline f32 RadarSonarRange = 150.0f;
-    static const inline f32 RadarSonarFrequency = 1.0f / 3.0f;
-    static const inline f32 ScannerFrequency = 1.0f / 3.0f;
     static const inline f32 MaxHeat = 500.0f;
     static const inline f32 CpuHaltHeat = 400.0f; //The CPU comes to a dead halt at this heat level
     static const inline f32 CpuReactivationHeat = CpuHaltHeat - 50.0f; //The heat level a robot must reach to reactivate after hitting CpuHaltHeat.
@@ -102,11 +98,6 @@ private:
     std::filesystem::file_time_type _sourceFileLastWriteTime;
     std::string _sourceFilePath;
     u64 _id;
-    f32 _turretShootTimer = 0.0f; //Limits turret fire rate
-    f32 _mineLayerTimer = 0.0f; //Limits mine layer rate
-    f32 _radarTimer = 0.0f;
-    f32 _sonarTimer = 0.0f;
-    f32 _scannerTimer = 0.0f;
     f32 _scannerArcWidth = 32.0f; //[0, 64]
     f32 _scannerRange = 250.0f;
     f32 _turretDamage = 1.0f;
