@@ -122,7 +122,7 @@ void Robot::OnPortRead(Port port, f32 deltaTime)
                 {
                     //Write heading of nearest bot back to the port
                     const Vec2<f32> dir = (closestBot->Position - Position).Normalized();
-                    Vm->GetPort(Port::Sonar) = (VmValue)dir.AngleUnitDegrees();
+                    Vm->GetPort(Port::Sonar) = (VmValue)(dir.AngleUnitDegrees());
                 }
             }
             break;
@@ -204,7 +204,7 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
         {
             //Calculate shoot angle. Can be slightly adjusted by writing a non zero value to the port
             f32 shootAdjustment = Range(Vm->GetPort(Port::TurretShoot), -TurretShootAngleControl, TurretShootAngleControl);
-            f32 shootAngle = ToRadians(360.0f - TurretDirection().AngleUnitDegrees() + shootAdjustment);
+            f32 shootAngle = ToRadians(TurretDirection().AngleUnitDegrees() + shootAdjustment);
             Vec2<f32> shootDirection = { cos(shootAngle), sin(shootAngle) };
 
             //Shoot the turret
@@ -213,7 +213,7 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
         }
         break;
     case Port::TurretRotateOffset:
-        TurretAngle += (f32)value * deltaTime; //Rotate turret by value stored in port
+        TurretAngle += (f32)value; //Rotate turret by value stored in port
         break;
     case Port::TurretRotateAbsolute:
         TurretAngle = (f32)value; //Set turret angle to the value stored in port
@@ -672,9 +672,7 @@ void Robot::TryReload()
 
 Vec2<f32> Robot::TurretDirection() const
 {
-    //Todo: Fix whatever is going wrong here. For some reason this isn't calculating the correct turret angle, but the inverse of it.
-    //      Short term workaround is to subtract it from 360 to flip the axis
-    const f32 turretAngleRadians = ToRadians(360.0f - TurretAngle);
+    const f32 turretAngleRadians = ToRadians(TurretAngle);
     return Vec2<f32>(cos(turretAngleRadians), sin(turretAngleRadians));
 }
 

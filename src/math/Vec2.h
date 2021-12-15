@@ -41,14 +41,16 @@ struct Vec2
     //Calculate the angle of the vector on the unit circle. Assumes it's a 2d normalized direction vector.
     f32 AngleUnitRadians() const
     {
-        const Vec2<T> xAxis = { 1.0f, 0.0f };
-        return std::acos(Dot(xAxis) / (Length() * xAxis.Length()));
+        f32 angle = std::atan2(y, x);
+        if (angle < 0.0f)
+            angle += 2 * PI;
+
+        return angle;
     }
 
     f32 AngleUnitDegrees() const
     {
-        const Vec2<T> xAxis = { 1.0f, 0.0f };
-        return ToDegrees(std::acos(Dot(xAxis) / (Length() * xAxis.Length())));
+        return ToDegrees(AngleUnitRadians());
     }
 
     void Rotate(const Vec2<f32>& origin, f32 angleDegrees)
