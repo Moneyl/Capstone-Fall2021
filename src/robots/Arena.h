@@ -59,7 +59,4 @@ public:
 
     //Maximum amount of collision substeps per robot per frame to use pushing a bot back into the arena
     const static inline u64 MaxRobotCollisionSubsteps = 10;
-
-private:
-    f32 _cycleAccumulator = 0.0f; //Accumulates time to execute VM cycles
 };

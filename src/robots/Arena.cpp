@@ -6,27 +6,15 @@
 
 void Arena::Update(f32 deltaTime)
 {
-    //Calculate how many cycles to execute this frame
-    //Only whole cycles are executed. If there's only enough time for part of a cycle it'll be accumulated for next frame
-    _cycleAccumulator += deltaTime; //Accumulate cycle time
-    const f32 timeBetweenCycles = 1.0f / (f32)CyclesPerSecond;
-    const u32 cyclesToExecute = truncf(_cycleAccumulator / timeBetweenCycles);
-    const f32 cyclesDelta = cyclesToExecute * timeBetweenCycles;
-
     //Update robots
     if (CyclesPerSecond != 0) //If CyclesPerSecond == 0, cyclesDelta == NaN. Breaks _cycleAccumulator and subsequent logic
     {
-        _cycleAccumulator -= cyclesDelta;
         for (Robot* robot : Robots)
         {
-            if (robot->Armor <= 0)
-                continue;
-
-            //Recompile source file if it was edited
             if (RobotAutoReloadEnabled)
-                robot->TryReload();
+                robot->TryReload(); //Recompile source file if it was edited
 
-            robot->Update(*this, cyclesDelta, cyclesToExecute);
+            robot->Update(*this, deltaTime, CyclesPerSecond);
 
             //Push out of bounds bot back into the arena
             u64 substepCount = 0;

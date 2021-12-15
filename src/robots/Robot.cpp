@@ -11,46 +11,86 @@ Robot::Robot()
     Init();
 }
 
-void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute)
+void Robot::Update(Arena& arena, f32 deltaTime, u32 cyclesPerSecond)
 {
-    _totalTime += deltaTime;
-    _arena = &arena;
     if (Error || Armor <= 0)
-        return;
+        return; //Dead. Waiting for cleanup
 
-    //Multiplier used to make hardware independent of framerate and cycle rate
-    const f32 timePerCycle = deltaTime / (f32)cyclesToExecute;
     LastPosition = Position;
+    _cycleAccumulator += deltaTime;
+    _totalTime += deltaTime; //This tracks the real time while the VM and hardware use the effective delta time (changed by heat)
+    _arena = &arena;
 
-    //Cycle VM
-    for (u32 i = 0; i < cyclesToExecute; i++)
+    //Calculate how much heat affects execution speed. High heat can slow or completely halt the CPU.
+    //  if Heat == 0.0f => heatSpeedMultiplier = 1.0f
+    //  if Heat == CpuHaltSpeed => heatSpeedMultiplier = 2.0f
+    const f32 exp = 1.8f; //Higher values make higher heats to more rapidly approach slow CPU speeds
+    const f32 heatSpeedMultiplier = 1.0f * std::powf(1.0f - (Heat / Robot::CpuHaltHeat), exp) + 1.0f;
+
+    //Calculate the number of whole cycles that can be executed from the accumulator. There are no partial cycles.
+    const f32 timePerCycle = (1.0f / (f32)cyclesPerSecond) * heatSpeedMultiplier;
+    const u32 cyclesToExecute = truncf(_cycleAccumulator / timePerCycle);
+    //const f32 effectiveDelta = cyclesToExecute * timePerCycle;
+    _cycleAccumulator -= deltaTime;//effectiveDelta;
+
+    //Time elapsed during each cycle. Time dependent behavior is multiplied by these to make them framerate & cycle rate independent.
+    const f32 cycleDelta = deltaTime / (f32)cyclesToExecute; //Heat independent
+    //const f32 effectiveCycleDelta = effectiveDelta / (f32)cyclesToExecute; //Heat dependent
+
+    if (Overheated || cyclesToExecute == 0)
     {
-        Result<void, VMError> cycleResult = Vm->Cycle(timePerCycle);
-        if (cycleResult.Error())
+        //Update cpu speed independent logic. E.g. heatsinks, hardware timers, movement
+        //If not overheated it's updated each cycle instead so high cycle/s work
+        UpdateHardware(deltaTime);
+
+        //Update overheat status
+        if (Heat <= Robot::CpuReactivationHeat)
+            Overheated = false;
+    }
+    else
+    {
+
+
+        //Cycle VM
+        for (u32 i = 0; i < cyclesToExecute; i++)
         {
-            VMError& error = cycleResult.Error().value();
-            printf("Error in VM::Cycle()! Code: %s, Message: %s\n", to_string(error.Code).c_str(), error.Message.c_str());
-            Error = true;
-            return;
+            Result<void, VMError> cycleResult = Vm->Cycle(cycleDelta);
+            if (cycleResult.Error())
+            {
+                VMError& error = cycleResult.Error().value();
+                printf("Error in VM::Cycle()! Code: %s, Message: %s\n", to_string(error.Code).c_str(), error.Message.c_str());
+                Error = true;
+                return;
+            }
+
+            UpdateHardware(cycleDelta);
         }
 
-        //Update hardware timers
-        _turretShootTimer += timePerCycle;
-        _mineLayerTimer += timePerCycle;
-        _sonarTimer += timePerCycle;
-        _radarTimer += timePerCycle;
-        _scannerTimer += timePerCycle;
-
-        //Movement
-        const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
-        Position += direction * Speed * timePerCycle;
-
-        //Heatsink
-        Heat -= Heatsink * timePerCycle;
-        Heat = std::max(0.0f, Heat);
-        if (Heat >= HeatDamageThreshold)
-            Armor -= OverHeatDamageFrequency * timePerCycle;
+        //Update overheat status
+        if (Heat >= Robot::CpuHaltHeat)
+            Overheated = true;
     }
+
+}
+
+void Robot::UpdateHardware(f32 deltaTime)
+{
+    //Update hardware timers
+    _turretShootTimer += deltaTime;
+    _mineLayerTimer += deltaTime;
+    _sonarTimer += deltaTime;
+    _radarTimer += deltaTime;
+    _scannerTimer += deltaTime;
+
+    //Movement
+    const Vec2<f32> direction = Vec2<f32>(cos(ToRadians(Angle)), sin(ToRadians(Angle))).Normalized();
+    Position += direction * Speed * deltaTime;
+
+    //Heatsink
+    Heat -= Robot::HeatsinkBase * Heatsink * deltaTime;
+    Heat = std::max(0.0f, Heat);
+    if (Heat >= HeatDamageThreshold)
+        Armor -= OverHeatDamageFrequency * deltaTime;
 }
 
 void Robot::OnPortRead(Port port, f32 deltaTime)
@@ -175,7 +215,7 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
         TurretAngle += value * deltaTime; //Turret rotates with the chassis
         break;
     case Port::TurretShoot:
-        if (_turretShootTimer >= TurretShootFrequency)
+        //if (_turretShootTimer >= TurretShootFrequency)
         {
             //Calculate shoot angle. Can be slightly adjusted by writing a non zero value to the port
             f32 shootAdjustment = Range(Vm->GetPort(Port::TurretShoot), -TurretShootAngleControl, TurretShootAngleControl);

@@ -17,7 +17,7 @@ public:
     Robot();
 
     //Per frame update
-    void Update(Arena& arena, f32 deltaTime, u32 cyclesToExecute);
+    void Update(Arena& arena, f32 deltaTime, u32 cyclesPerSecond);
     //Draw robot in the window
     void Draw(Renderer* renderer);
     //Load program from asm source file
@@ -55,6 +55,7 @@ public:
     f32 ArmorDamageMultiplier = 1.0f;
     f32 Accuracy = 0.0f; //Accuracy of last scanner activation. Difference in degrees between the turret direction and the direction of the detected bot
     bool ShieldOn = true;
+    bool Overheated = false; //True if heat reaches CpuHaltHeat. Stops once heat lowers to CpuReactivationHeat
     VmValue NumMines = MaxMines;
 
     //Set to true when an error occurs. If true ::Update() is stopped until the error is resolved.
@@ -70,14 +71,19 @@ public:
     static const inline f32 RadarSonarFrequency = 1.0f / 3.0f;
     static const inline f32 ScannerFrequency = 1.0f / 3.0f;
     static const inline f32 MaxHeat = 500.0f;
+    static const inline f32 CpuHaltHeat = 400.0f; //The CPU comes to a dead halt at this heat level
+    static const inline f32 CpuReactivationHeat = CpuHaltHeat - 50.0f; //The heat level a robot must reach to reactivate after hitting CpuHaltHeat.
     static const inline f32 HeatDamageThreshold = MaxHeat * 0.8f;
     static const inline f32 OverHeatDamageFrequency = 0.25f;
-    static const inline f32 HeatPerTurretShot = 2.5f;
+    static const inline f32 HeatPerTurretShot = 5.0f;
     static const inline u32 MaxConfigPoints = 12; //Total config points to be spread between scanner, turret, armor, engine, heatsinks, mines, and shield
     static const inline f32 MineDamage = 0.15f; //Damage caused by mines at the center of the detonation. Damage decreases with distance.
     static const inline f32 ArmorBase = 12.0f; //Base armor level that the armor config directive modifies
     static const inline f32 SpeedBase = 150.0f; //Base max speed that the engine config directive modifies
+    static const inline f32 HeatsinkBase = 10.0f;
 private:
+    //Updates heat independent hardware
+    void UpdateHardware(f32 deltaTime);
     //Called by the VM when ports are read (ipo) and written (opo)
     //This updates the ports with the latest hardware state on reads, and lets hardware respond to writes.
     void OnPortRead(Port port, f32 deltaTime);
@@ -111,4 +117,8 @@ private:
     bool _radarOn = false;
     bool _scannerOn = false;
     Arena* _arena = nullptr;
+
+    //Accumulates excess time when there's not enough to run a whole cycle.
+    //Robots can't run half a cycle. We don't want to discard it either because you'd have inconsistent behavior.
+    f32 _cycleAccumulator = 0.0f;
 };
