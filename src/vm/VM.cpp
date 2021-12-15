@@ -275,6 +275,8 @@ Result<void, VMError> VM::Execute(f32 deltaTime)
     case Opcode::OpoVal:
         OnPortWrite((Port)_instruction->OpPortValue.Port, _instruction->OpPortValue.Value, deltaTime); //Write value to the port. The callback is allowed to discard the value.
         break;
+    case Opcode::Nop:
+        break;
     default:
         return Error(VMError{ VMErrorCode::UnsupportedInstruction, "Unsupported opcode '" + std::to_string((u32)_instruction->Op.Opcode) + "' decoded by VM." });
     }

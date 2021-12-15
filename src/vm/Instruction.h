@@ -129,6 +129,7 @@ enum class Opcode
     Ipo = 32,       //ipo register port
     Opo = 33,       //opo port register
     OpoVal = 34,    //opo port value|constant
+    Nop = 35,       //nop
 };
 
 static std::string to_string(Opcode opcode, bool useRealOpcodeNames = false)
@@ -226,6 +227,9 @@ static std::string to_string(const Instruction& instruction, bool useRealOpcodeN
         return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + std::to_string(instruction.OpPortValue.Port) + " "
                + std::to_string(instruction.OpPortValue.Value);
+    
+    case Opcode::Nop:
+        return "nop";
 
     default:
         return "Unsupported opcode " + std::to_string((u32)instruction.Op.Opcode);

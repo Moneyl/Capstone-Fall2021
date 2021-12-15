@@ -273,6 +273,14 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
             break;
 
+        case Token::Nop:
+            if (auto pattern = Expect<1>({ Token::Newline }))
+                instruction.Op.Opcode = (u32)Opcode::Nop;
+            else
+                return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid nop syntax. Expects `nop` with no other arguments" });
+
+            break;
+
             //Ignore blank lines
         case Token::Newline:
             _curTokenIndex++;
@@ -465,7 +473,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(std::string_view source)
 Result<VmProgram, CompilerError> Compiler::CompileFile(std::string_view inputFilePath)
 {
     //Read file to string, tokenize, and compile
-    return Compile(File::ReadAll(inputFilePath));
+    return Compile(File::ReadAll(inputFilePath) + "\r\n");
 }
 
 i32 Compiler::GetRegisterIndex(const TokenData& token)

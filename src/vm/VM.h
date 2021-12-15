@@ -112,7 +112,8 @@ public:
         //Note: ipo and both variants of opo ignore this and instead use PortDurations
         { Opcode::Ipo,    1 },
         { Opcode::Opo,    1 },
-        { Opcode::OpoVal, 1 }
+        { Opcode::OpoVal, 1 },
+        { Opcode::Nop,    1 },
     };
 
     //The number of cycles it takes to read/write from each port.

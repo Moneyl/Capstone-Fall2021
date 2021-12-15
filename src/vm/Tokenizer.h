@@ -49,6 +49,7 @@ enum class Token : u8
     Pop = (u32)Opcode::Pop,
     Ipo = (u32)Opcode::Ipo,
     Opo = (u32)Opcode::Opo,
+    Nop = (u32)Opcode::Nop,
     Config,
     Register,
     Var,

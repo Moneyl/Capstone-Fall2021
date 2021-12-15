@@ -52,6 +52,7 @@ const std::vector<TokenizerRule> Tokenizer::Rules =
     Match(Token::Pop, "pop"),
     Match(Token::Ipo, "ipo"),
     Match(Token::Opo, "opo"),
+    Match(Token::Nop, "nop"),
     Match(Token::Config, "#config"),
     Match(Token::Register, "r0"),
     Match(Token::Register, "r1"),
