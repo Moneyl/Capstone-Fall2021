@@ -53,14 +53,14 @@ const std::vector<TokenizerRule> Tokenizer::Rules =
     Match(Token::Ipo, "ipo"),
     Match(Token::Opo, "opo"),
     Match(Token::Config, "#config"),
-    Match(Token::Register0, "r0"),
-    Match(Token::Register1, "r1"),
-    Match(Token::Register2, "r2"),
-    Match(Token::Register3, "r3"),
-    Match(Token::Register4, "r4"),
-    Match(Token::Register5, "r5"),
-    Match(Token::Register6, "r6"),
-    Match(Token::Register7, "r7"),
+    Match(Token::Register, "r0"),
+    Match(Token::Register, "r1"),
+    Match(Token::Register, "r2"),
+    Match(Token::Register, "r3"),
+    Match(Token::Register, "r4"),
+    Match(Token::Register, "r5"),
+    Match(Token::Register, "r6"),
+    Match(Token::Register, "r7"),
     Rule(Token::Value, [](std::string_view str) -> bool { return String::IsNumber(str); }),
     Match(Token::Var, "var"),
     Match(Token::Constant, "const"),
@@ -111,7 +111,7 @@ Result<std::vector<TokenData>, TokenizerError> Tokenizer::Tokenize(std::string_v
             {
                 if (rule.Function(strLowercase))
                 {
-                    tokens.push_back({ rule.Type, str });
+                    tokens.push_back({ str, rule.Type });
                     match = true;
                     break;
                 }
@@ -121,7 +121,7 @@ Result<std::vector<TokenData>, TokenizerError> Tokenizer::Tokenize(std::string_v
             if (!match)
                 return Error(TokenizerError{ TokenizerErrorCode::UnsupportedToken, "Unsupported token \"" + std::string(strLowercase) + "\" detected in Tokenizer::Tokenize()." });
         }
-        tokens.push_back({ Token::Newline, "\n" });
+        tokens.push_back({ "\n", Token::Newline });
     }
 
     return Success(tokens);

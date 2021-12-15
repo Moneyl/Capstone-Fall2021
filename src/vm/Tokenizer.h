@@ -7,7 +7,7 @@
 #include <functional>
 #include <vector>
 
-enum class Token;
+enum class Token : u8;
 struct TokenData;
 struct TokenizerRule;
 struct TokenizerError;
@@ -23,7 +23,7 @@ public:
 };
 
 //Valid tokens. See Tokenizer.cpp for the rules that detect them.
-enum class Token
+enum class Token : u8
 {
     //Tokens are set to the value of different opcodes so the compiler doesn't need to convert them
     Mov = (u32)Opcode::Mov,
@@ -50,14 +50,7 @@ enum class Token
     Ipo = (u32)Opcode::Ipo,
     Opo = (u32)Opcode::Opo,
     Config,
-    Register0,
-    Register1,
-    Register2,
-    Register3,
-    Register4,
-    Register5,
-    Register6,
-    Register7,
+    Register,
     Var,
     VarName,
     Label,
@@ -70,14 +63,8 @@ enum class Token
 //Tokenizer output. Has the token type and the string data for that token.
 struct TokenData
 {
-    Token Type;
     std::string_view String;
-
-    //Returns true if the token is a register
-    bool IsRegister() const
-    {
-        return Type >= Token::Register0 && Type <= Token::Register7;
-    }
+    Token Type;
 };
 
 //Used to identify tokens. Returns true if the match function detects its token

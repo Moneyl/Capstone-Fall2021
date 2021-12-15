@@ -5,6 +5,7 @@
 #include "VM.h"
 #include <stdexcept>
 #include <string>
+#include <array>
 
 struct Label
 {
@@ -35,26 +36,18 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
             2) Patch addresses: replace variables and labels with their addresses.
             3) Write program binary: generate the program binary that the VM can run.
     */
-    //Index of the current token the compiler is at
-    u32 curTokenIndex = 0;
-    //Instructions generated from tokens
+    _tokens = tokens;
+    _curTokenIndex = 0;
     std::vector<Instruction> instructions = {};
-
-    //Data collected during step 1 and used in step 2
     std::vector<Label> labels = {}; //Used over std::map<> for insertion based ordering. Easier to debug.
     std::vector<Variable> variables = {};
+    std::vector<VmConfig> config = {};
 
     //Instructions that need to be patched in step 2
     std::vector<Patch> labelPatches = {};
     std::vector<Patch> variablePatches = {};
 
-    //Config values
-    std::vector<VmConfig> config = {};
-
-    //Peek ahead in the token list. Returns Token::NONE if curTokenIndex + distance is out of bounds
-    auto PeekToken = [&](u32 distance) -> TokenData { return (curTokenIndex + distance < tokens.size()) ? tokens[curTokenIndex + distance] : TokenData{ Token::None, "" }; };
-
-    //Add built in constants to list
+    //Add built in constants
     for (auto& kv : BuiltInConstants)
     {
         std::string_view name = kv.first;
@@ -68,18 +61,12 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
     /*
         Step 1, Parse tokens:
-        Tokens are parsed and instructions are generated from them. Label and variable usage is recorded for step 2.
+        Tokens are parsed and instructions are generated from them. Labels and variables recorded for step 2.
     */
-    while (curTokenIndex < tokens.size())
+    while (_curTokenIndex < tokens.size())
     {
-        Instruction instruction = { 0 };
-
-        //Get token data. PeekToken() returns Token::None if it goes out of bounds.
-        const TokenData cur = tokens[curTokenIndex];
-        const TokenData next = PeekToken(1);
-        const TokenData next2 = PeekToken(2);
-        const TokenData next3 = PeekToken(3);
-        const TokenData next4 = PeekToken(4);
+        const TokenData cur = tokens[_curTokenIndex]; //Current token
+        Instruction instruction = { 0 }; //Next instruction to generate. If `continue` or `break` are encountered the instruction gets discarded
 
         //Parse tokens and output instructions
         switch (cur.Type)
@@ -94,31 +81,29 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
         case Token::And:
         case Token::Or:
         case Token::Xor:
-            if (next.IsRegister() && next2.IsRegister() && next3.Type == Token::Newline)
+            //Expect<N> returns a std::optional<std::array<TokenData, N>>. If the pattern isn't matched it'll return an empty and the if statement will fail.
+            if (auto pattern = Expect<3>({ Token::Register, Token::Register, Token::Newline })) //op register register
             {
+                //pattern.value() is a std::array<TokenData, 3> here. Structured binding is used to extract all 3 tokens in one line.
+                auto [regA, regB, newline] = pattern.value();
                 instruction.OpRegisterRegister.Opcode = (u16)(cur.Type);
-                instruction.OpRegisterRegister.RegA = GetRegisterIndex(next.Type);
-                instruction.OpRegisterRegister.RegB = GetRegisterIndex(next2.Type);
-                curTokenIndex += 4;
+                instruction.OpRegisterRegister.RegA = GetRegisterIndex(regA);
+                instruction.OpRegisterRegister.RegB = GetRegisterIndex(regB);
             }
-            else if (next.IsRegister() && next2.Type == Token::Value && next3.Type == Token::Newline) //op register value
+            else if (auto pattern = Expect<3>({ Token::Register, Token::Value, Token::Newline })) //op register value
             {
-                //The Token enum is equivalent to the Opcode enum for easy conversion
-                //Opcodes that have register and value variants can be converted by adding 1. E.g. Mov = 0, MovVal = Mov + 1
-                instruction.OpRegisterValue.Opcode = (u16)(cur.Type) + 1;
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
-                instruction.OpRegisterValue.Value = String::ToShort(next2.String);
-                curTokenIndex += 4;
+                auto [reg, value, newline] = pattern.value();
+                instruction.OpRegisterValue.Opcode = (u16)(cur.Type) + 1; //The Token enum is equivalent to the Opcode enum for easy conversion. Can convert from Mov -> MovVal by adding 1.
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
+                instruction.OpRegisterValue.Value = String::ToShort(value.String);
             }
-            else if (next.IsRegister() && next2.Type == Token::VarName && next3.Type == Token::Newline) //op register constant
+            else if (auto pattern = Expect<3>({ Token::Register, Token::VarName, Token::Newline })) //op register variable
             {
+                auto [reg, var, newline] = pattern.value();
                 instruction.OpRegisterValue.Opcode = (u16)(cur.Type) + 1;
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
                 instruction.OpRegisterValue.Value = 0; //Patched in compile step 2
-                curTokenIndex += 4;
-
-                //Mark instruction for constant patching in step 2
-                variablePatches.push_back({ instructions.size(), next2.String });
+                variablePatches.push_back({ instructions.size(), var.String }); //Mark instruction for constant patching in step 2
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid syntax. Expects '" + to_string(cur.Type) + " register (register|value)'" });
@@ -127,29 +112,27 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
             //Load instruction
         case Token::Load:
-            if (next.IsRegister() && next2.Type == Token::Value && next3.Type == Token::Newline) //Load from constant address
+            if (auto pattern = Expect<3>({ Token::Register, Token::Value, Token::Newline })) //Load from constant address
             {
+                auto [reg, value, newline] = pattern.value();
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Load;
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
-                instruction.OpRegisterValue.Value = String::ToShort(next2.String);
-                curTokenIndex += 4;
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
+                instruction.OpRegisterValue.Value = String::ToShort(value.String);
             }
-            else if (next.IsRegister() && next2.Type == Token::VarName && next3.Type == Token::Newline) //Load the value of a variable or from a constant address
+            else if (auto pattern = Expect<3>({ Token::Register, Token::VarName, Token::Newline })) //Load the value of a variable or from a constant address
             {
+                auto [reg, var, newline] = pattern.value();
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Load;
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
                 instruction.OpRegisterValue.Value = 0; //Patched in compile step 2
-                curTokenIndex += 4;
-
-                //Mark instruction for variable address patching
-                variablePatches.push_back({ instructions.size(), next2.String });
+                variablePatches.push_back({ instructions.size(), var.String });
             }
-            else if (next.IsRegister() && next2.IsRegister() && next3.Type == Token::Newline)
+            else if (auto pattern = Expect<3>({ Token::Register, Token::Register, Token::Newline }))
             {
+                auto [regA, regB, newline] = pattern.value();
                 instruction.OpRegisterRegister.Opcode = (u16)Opcode::LoadP;
-                instruction.OpRegisterRegister.RegA = GetRegisterIndex(next.Type);
-                instruction.OpRegisterRegister.RegB = GetRegisterIndex(next2.Type);
-                curTokenIndex += 4;
+                instruction.OpRegisterRegister.RegA = GetRegisterIndex(regA);
+                instruction.OpRegisterRegister.RegB = GetRegisterIndex(regB);
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid store syntax. Expects 'load register register' or 'load register address'" });
@@ -158,29 +141,27 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
             //Store instruction
         case Token::Store:
-            if (next.Type == Token::Value && next2.IsRegister() && next3.Type == Token::Newline) //Store register value in constant address
+            if (auto pattern = Expect<3>({ Token::Value, Token::Register, Token::Newline })) //Store register value in constant address
             {
+                auto [value, reg, newline] = pattern.value();
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Store;
-                instruction.OpRegisterValue.Value = String::ToShort(next.String);
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next2.Type);
-                curTokenIndex += 4;
+                instruction.OpRegisterValue.Value = String::ToShort(value.String);
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
             }
-            else if (next.Type == Token::VarName && next2.IsRegister() && next3.Type == Token::Newline) //Store register value in variable or from a constant address
+            else if (auto pattern = Expect<3>({ Token::VarName, Token::Register, Token::Newline })) //Store register value in variable or from a constant address
             {
+                auto [var, reg, newline] = pattern.value();
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Store;
                 instruction.OpRegisterValue.Value = 0; //Patched in compile step 2
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next2.Type);
-                curTokenIndex += 4;
-
-                //Mark instruction for variable address patching
-                variablePatches.push_back({ instructions.size(), next.String });
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
+                variablePatches.push_back({ instructions.size(), var.String });
             }
-            else if (next.IsRegister() && next2.IsRegister() && next3.Type == Token::Newline)
+            else if (auto pattern = Expect<3>({ Token::Register, Token::Register, Token::Newline }))
             {
+                auto [regA, regB, newline] = pattern.value();
                 instruction.OpRegisterRegister.Opcode = (u16)Opcode::StoreP;
-                instruction.OpRegisterRegister.RegA = GetRegisterIndex(next.Type);
-                instruction.OpRegisterRegister.RegB = GetRegisterIndex(next2.Type);
-                curTokenIndex += 4;
+                instruction.OpRegisterRegister.RegA = GetRegisterIndex(regA);
+                instruction.OpRegisterRegister.RegB = GetRegisterIndex(regB);
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid store syntax. Expects 'store register register' or 'store address register'" });
@@ -194,20 +175,18 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
         case Token::Jgr:
         case Token::Jls:
         case Token::Call:
-            if (next.Type == Token::Value && next2.Type == Token::Newline)
+            if (auto pattern = Expect<2>({ Token::Value, Token::Newline }))
             {
+                auto [value, newline] = pattern.value();
                 instruction.OpAddress.Opcode = (u16)cur.Type;
-                instruction.OpAddress.Address = String::ToShort(next.String);
-                curTokenIndex += 3;
+                instruction.OpAddress.Address = String::ToShort(value.String);
             }
-            else if (next.Type == Token::Label && next2.Type == Token::Newline)
+            else if (auto pattern = Expect<2>({ Token::Label, Token::Newline }))
             {
+                auto [label, newline] = pattern.value();
                 instruction.OpAddress.Opcode = (u16)cur.Type;
                 instruction.OpAddress.Address = 0; //Patched in compile step 2
-                curTokenIndex += 3;
-
-                //Mark instruction for label address patching
-                labelPatches.push_back({ instructions.size(), next.String });
+                labelPatches.push_back({ instructions.size(), label.String });
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid syntax. Expects '" + to_string(cur.Type) + " address'" });
@@ -216,10 +195,9 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
             //Return instruction
         case Token::Ret:
-            if (next.Type == Token::Newline)
+            if (auto pattern = Expect<1>({ Token::Newline }))
             {
                 instruction.Op.Opcode = (u16)cur.Type;
-                curTokenIndex += 2;
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid 'ret' syntax. Expects no arguments." });
@@ -230,11 +208,11 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
         case Token::Neg:
         case Token::Push:
         case Token::Pop:
-            if (next.IsRegister() && next2.Type == Token::Newline)
+            if (auto pattern = Expect<2>({ Token::Register, Token::Newline }))
             {
+                auto [reg, newline] = pattern.value();
                 instruction.OpRegister.Opcode = (u16)cur.Type;
-                instruction.OpRegister.Reg = GetRegisterIndex(next.Type);
-                curTokenIndex += 3;
+                instruction.OpRegister.Reg = GetRegisterIndex(reg);
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid syntax. Expects '" + to_string(cur.Type) + " register'" });
@@ -243,58 +221,52 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
             //Read from port
         case Token::Ipo:
-            if (next.IsRegister() && next2.Type == Token::VarName && next3.Type == Token::Newline) //ipo register constant
+            if (auto pattern = Expect<3>({ Token::Register, Token::VarName, Token::Newline })) //ipo register constant
             {
+                auto [reg, var, newline] = pattern.value();
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Ipo;
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
                 instruction.OpRegisterValue.Value = 0; //Patched in stage 2
-                curTokenIndex += 4;
-
-                //Mark instruction for variable address patching
-                variablePatches.push_back({ instructions.size(), next2.String, true /*ConstantsOnly*/ });
+                variablePatches.push_back({ instructions.size(), var.String, true /*ConstantsOnly*/ });
             }
-            else if (next.IsRegister() && next2.Type == Token::Value && next3.Type == Token::Newline) //ipo register value
+            else if (auto pattern = Expect<3>({ Token::Register, Token::Value, Token::Newline })) //ipo register value
             {
+                auto [reg, value, newline] = pattern.value();
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Ipo;
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next.Type);
-                instruction.OpRegisterValue.Value = String::ToShort(next2.String);
-                curTokenIndex += 4;
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
+                instruction.OpRegisterValue.Value = String::ToShort(value.String);
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid ipo syntax. Expects `ipo register port`, where port is a port constant." });
-
+            
             break;
 
             //Write to port
         case Token::Opo:
-            if (next.Type == Token::VarName && next2.IsRegister() && next3.Type == Token::Newline) //opo port register
+            if (auto pattern = Expect<3>({ Token::VarName, Token::Register, Token::Newline })) //opo port register
             {
+                auto [var, reg, newline] = pattern.value();
                 instruction.OpRegisterValue.Opcode = (u16)Opcode::Opo;
-                instruction.OpRegisterValue.RegA = GetRegisterIndex(next2.Type);
+                instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
                 instruction.OpRegisterValue.Value = 0; //Patched in stage 2
-                curTokenIndex += 4;
-
-                //Mark instruction for variable address patching
-                variablePatches.push_back({ instructions.size(), next.String });
+                variablePatches.push_back({ instructions.size(), var.String });
             }
-            else if (next.Type == Token::VarName && next2.Type == Token::Value && next3.Type == Token::Newline) //opo port value
+            else if (auto pattern = Expect<3>({ Token::VarName, Token::Value, Token::Newline })) //opo port value
             {
+                auto [var, value, newline] = pattern.value();
                 instruction.OpPortValue.Opcode = (u16)Opcode::OpoVal;
                 instruction.OpPortValue.Port = 0; //Patched in stage 2
-                instruction.OpPortValue.Value = String::ToShort(next2.String);
-                curTokenIndex += 4;
-                
-                variablePatches.push_back({ instructions.size(), next.String, true /*ConstantsOnly*/, true /*PatchPort*/ });
+                instruction.OpPortValue.Value = String::ToShort(value.String);
+                variablePatches.push_back({ instructions.size(), var.String, true /*ConstantsOnly*/, true /*PatchPort*/ });
             }
-            else if (next.Type == Token::VarName && next2.Type == Token::VarName && next3.Type == Token::Newline) //opo port constant
+            else if (auto pattern = Expect<3>({ Token::VarName, Token::VarName, Token::Newline })) //opo port constant
             {
+                auto [var, port, newline] = pattern.value();
                 instruction.OpPortValue.Opcode = (u16)Opcode::OpoVal;
                 instruction.OpPortValue.Port = 0; //Patched in stage 2
                 instruction.OpPortValue.Value = 0; //Patched in stage 2
-                curTokenIndex += 4;
-
-                variablePatches.push_back({ instructions.size(), next.String, true /*ConstantsOnly*/, true /*PatchPort*/ });
-                variablePatches.push_back({ instructions.size(), next2.String, true /*ConstantsOnly*/, false /*PatchPort*/ });
+                variablePatches.push_back({ instructions.size(), var.String, true /*ConstantsOnly*/, true /*PatchPort*/ });
+                variablePatches.push_back({ instructions.size(), port.String, true /*ConstantsOnly*/, false /*PatchPort*/ });
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid opo syntax. Expects `opo port register|value|constant`, where port is a port constant." });
@@ -303,76 +275,82 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
             //Ignore blank lines
         case Token::Newline:
-            curTokenIndex += 1;
+            _curTokenIndex++;
             continue;
 
         case Token::Var:
-            if (next.Type == Token::VarName && next2.Type == Token::Value && next3.Type == Token::Newline)
+            if (auto pattern = Expect<3>({ Token::VarName, Token::Value, Token::Newline }))
             {
+                auto [var, value, newline] = pattern.value();
+
                 //Don't allow duplicate variables
-                for (Variable& var : variables)
-                    if(var.Name == next.String)
+                for (Variable& variable : variables)
+                    if(variable.Name == var.String)
                         return Error(CompilerError{ CompilerErrorCode::DuplicateVariable, "Variable \"" + std::string(cur.String) + "\" duplicated!" });
 
                 //Count variables to determine new variables relative address
                 u32 variableCount = 0;
-                for (Variable& var : variables)
-                    if (!var.Constant)
+                for (Variable& variable : variables)
+                    if (!variable.Constant)
                         variableCount++;
 
                 //Add to variables list
-                Variable var;
-                var.Name = next.String;
-                var.Address = variableCount * sizeof(VmValue); //Address relative to start of variables block
-                var.InitialValue = String::ToShort(next2.String);
-                var.Constant = false;
-                variables.push_back(var);
-                curTokenIndex += 4;
+                Variable variable;
+                variable.Name = var.String;
+                variable.Address = variableCount * sizeof(VmValue); //Address relative to start of variables block
+                variable.InitialValue = String::ToShort(value.String);
+                variable.Constant = false;
+                variables.push_back(variable);
+                _curTokenIndex++;
                 continue; //Doesn't generate an instruction
             }
             break;
 
         case Token::Constant:
-            if (next.Type == Token::VarName && next2.Type == Token::Value && next3.Type == Token::Newline)
+            if (auto pattern = Expect<3>({ Token::VarName, Token::Value, Token::Newline }))
             {
+                auto [var, value, newline] = pattern.value();
+
                 //Don't allow duplicate constants
-                for (Variable& var : variables)
-                    if (var.Name == next.String)
+                for (Variable& variable : variables)
+                    if (variable.Name == var.String)
                         return Error(CompilerError{ CompilerErrorCode::DuplicateVariable, "Variable \"" + std::string(cur.String) + "\" duplicated!" });
 
                 //Add to variables list
-                Variable var;
-                var.Name = next.String;
-                var.Address = -1; //Constants are compile time only
-                var.InitialValue = String::ToShort(next2.String);
-                var.Constant = true;
-                variables.push_back(var);
-                curTokenIndex += 4;
+                Variable variable;
+                variable.Name = var.String;
+                variable.Address = -1; //Constants are compile time only
+                variable.InitialValue = String::ToShort(value.String);
+                variable.Constant = true;
+                variables.push_back(variable);
+                _curTokenIndex++;
                 continue; //Doesn't generate an instruction
             }
             break;
 
         case Token::Config:
-            if (next.Type == Token::VarName && next2.Type == Token::Value && next3.Type == Token::Newline)
+            if (auto pattern = Expect<3>({ Token::VarName, Token::Value, Token::Newline }))
             {
+                auto [var, value, newline] = pattern.value();
                 VmConfig& configVal = config.emplace_back();
-                configVal.Name = String::ToLower(next.String); //Names are case insensitive
-                configVal.Value = String::ToShort(next2.String);
-                curTokenIndex += 4;
+                configVal.Name = String::ToLower(var.String); //Names are case insensitive
+                configVal.Value = String::ToShort(value.String);
+                _curTokenIndex++;
+                continue; //Doesn't generate an instruction
             }
             break;
 
         case Token::Label:
-            if (next.Type == Token::Newline)
+            if (auto pattern = Expect<1>({ Token::Newline }))
             {
                 //Don't allow duplicate labels
                 for (Label& label : labels)
-                    if (label.Name == next.String)
+                    if (label.Name == cur.String)
                         return Error(CompilerError{ CompilerErrorCode::DuplicateVariable, "Variable \"" + std::string(cur.String) + "\" duplicated!" });
 
                 //Map label name to its address
                 labels.push_back(Label{ cur.String, VM::RESERVED_BYTES + instructions.size() * sizeof(Instruction) });
-                curTokenIndex += 2;
+                _curTokenIndex++;
                 continue; //Doesn't generate an instruction
             }
             else
@@ -381,14 +359,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
             break;
 
             //These tokens shouldn't be standalone
-        case Token::Register0:
-        case Token::Register1:
-        case Token::Register2:
-        case Token::Register3:
-        case Token::Register4:
-        case Token::Register5:
-        case Token::Register6:
-        case Token::Register7:
+        case Token::Register:
         case Token::VarName:
         case Token::Value:
             return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid syntax. '" + to_string(cur.Type) + "' should only be used as an instruction argument." });
@@ -397,6 +368,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
             return Error(CompilerError{ CompilerErrorCode::UnsupportedToken, "Unknown token '" + std::string(cur.String) + "' passed to compiler." });
         }
 
+        _curTokenIndex++; //Next instruction
         instructions.push_back(instruction);
     }
 
@@ -442,7 +414,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
 
     /*
-        Step 2, Generate program binary:
+        Step 3, Generate program binary:
         Generate program binary. It's data is laid out as such:
             - Header: Contains info such as the program size, and the sizes of the instruction and variable blocks.
             - Instructions: Instructions to be executed by the VM.
@@ -473,6 +445,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
 
     //Construct and return vm program instance
     VmProgram program(std::move(header), std::move(instructions), std::move(finalVariables), std::move(config));
+    _tokens.clear();
     return Success(program);
 }
 
@@ -483,7 +456,10 @@ Result<VmProgram, CompilerError> Compiler::Compile(std::string_view source)
     if (tokenizeResult.Error())
         return Error(CompilerError{ CompilerErrorCode::TokenizationError, tokenizeResult.Error().value().Message });
 
-    return Compile(tokenizeResult.Success().value());
+    _tokens = tokenizeResult.Success().value();
+    Result<VmProgram, CompilerError> compileResult = Compile(tokenizeResult.Success().value());
+    _tokens.clear();
+    return compileResult;
 }
 
 Result<VmProgram, CompilerError> Compiler::CompileFile(std::string_view inputFilePath)
@@ -492,10 +468,53 @@ Result<VmProgram, CompilerError> Compiler::CompileFile(std::string_view inputFil
     return Compile(File::ReadAll(inputFilePath));
 }
 
-i32 Compiler::GetRegisterIndex(Token token)
+i32 Compiler::GetRegisterIndex(const TokenData& token)
 {
-    if (token < Token::Register0 || token > Token::Register7)
-        throw std::runtime_error("Invalid register token enum '" + to_string(token) + "' passed to Compiler::GetRegisterIndex()");
+    if (token.String == "r0")
+        return 0;
+    if (token.String == "r1")
+        return 1;
+    if (token.String == "r2")
+        return 2;
+    if (token.String == "r3")
+        return 3;
+    if (token.String == "r4")
+        return 4;
+    if (token.String == "r5")
+        return 5;
+    if (token.String == "r6")
+        return 6;
+    if (token.String == "r7")
+        return 7;
+    
+    throw std::runtime_error("Invalid register token enum '" + std::string(token.String) + "' passed to Compiler::GetRegisterIndex()");
+}
 
-    return (u16)token - (u16)Token::Register0;
+template<size_t numTokens>
+std::optional<std::array<TokenData, numTokens>> Compiler::Expect(std::initializer_list<Token> pattern)
+{
+    //Make sure we won't peek out of bounds
+    assert(pattern.size() == numTokens, "Size mismatch with Compiler::Peek<numTokens>(pattern). pattern isn't the same size as numTokens. They must be the same");
+    size_t peekMax = _curTokenIndex + numTokens;
+    if (peekMax >= _tokens.size())
+        return {};
+
+    std::array<TokenData, numTokens> out;
+    size_t i = 0;
+
+    //Check if the next N tokens match the pattern
+    for (Token token : pattern)
+    {
+        size_t peekIndex = _curTokenIndex + i + 1;
+        if (peekIndex >= _tokens.size() || _tokens[peekIndex].Type != token)
+            return {}; //Pattern mismatch, return empty
+        else
+            out[i] = _tokens[peekIndex];
+
+        i++;
+    }
+
+    //Pattern matched. Return token data and advance token stream
+    _curTokenIndex = peekMax;
+    return out;
 }

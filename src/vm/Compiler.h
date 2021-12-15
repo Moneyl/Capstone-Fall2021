@@ -6,6 +6,7 @@
 #include "Instruction.h"
 #include "VmProgram.h"
 #include <magic_enum.hpp>
+#include <array>
 
 struct CompilerError;
 
@@ -19,7 +20,14 @@ public:
     Result<VmProgram, CompilerError> CompileFile(std::string_view inputFilePath);
 
 private:
-    i32 GetRegisterIndex(Token token);
+    //Get index of a register from the corresponding token (e.g. Token::Register0, Token::Register1, etc)
+    i32 GetRegisterIndex(const TokenData& token);
+    //Checks if the provided pattern is next in the stream. If true it returns the taken data and increments _curTokenIndex.
+    template<size_t numTokens>
+    std::optional<std::array<TokenData, numTokens>> Expect(std::initializer_list<Token> pattern);
+
+    std::vector<TokenData> _tokens = {};
+    size_t _curTokenIndex = 0;
 };
 
 enum class CompilerErrorCode
