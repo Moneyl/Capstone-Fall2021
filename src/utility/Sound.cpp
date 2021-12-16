@@ -20,12 +20,12 @@ bool Sound::Init()
 {
     //Init SDL_mixer
     //Todo: Support other formats like MP3 and Ogg. Requires pulling in some other libraries.
-    i32 initFlags = 0;
-    if (Mix_Init(initFlags) == 0)
-    {
-        std::cerr << "Failed to initialize SDL_mixer! Error: " << Mix_GetError() << "\n";
-        return false;
-    }
+    //i32 initFlags = 0;
+    //if (Mix_Init(initFlags) == 0)
+    //{
+    //    std::cerr << "Failed to initialize SDL_mixer! Error: " << Mix_GetError() << "\n";
+    //    return false;
+    //}
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
     {
         std::cerr << "Failed to initialize SDL_mixer! Error: " << Mix_GetError() << "\n";
