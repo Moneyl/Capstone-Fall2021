@@ -130,6 +130,8 @@ enum class Opcode
     Opo = 33,       //opo port register
     OpoVal = 34,    //opo port value|constant
     Nop = 35,       //nop
+    Mod = 36,       //mod register register
+    ModVal = 37,    //mod register value
 };
 
 static std::string to_string(Opcode opcode, bool useRealOpcodeNames = false)
@@ -174,6 +176,7 @@ static std::string to_string(const Instruction& instruction, bool useRealOpcodeN
     case Opcode::Xor:
     case Opcode::LoadP:
     case Opcode::StoreP:
+    case Opcode::Mod:
         return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + "r" + std::to_string(instruction.OpRegisterRegister.RegA) + " "
                + "r" + std::to_string(instruction.OpRegisterRegister.RegB);
@@ -190,6 +193,7 @@ static std::string to_string(const Instruction& instruction, bool useRealOpcodeN
     case Opcode::XorVal:
     case Opcode::Load:
     case Opcode::Ipo:
+    case Opcode::ModVal:
         return to_string((Opcode)instruction.Op.Opcode, useRealOpcodeNames) + " "
                + "r" + std::to_string(instruction.OpRegisterValue.RegA) + " "
                + std::to_string(instruction.OpRegisterValue.Value);

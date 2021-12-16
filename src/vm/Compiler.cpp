@@ -81,6 +81,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
         case Token::And:
         case Token::Or:
         case Token::Xor:
+        case Token::Mod:
             //Expect<N> returns a std::optional<std::array<TokenData, N>>. If the pattern isn't matched it'll return an empty and the if statement will fail.
             if (auto pattern = Expect<3>({ Token::Register, Token::Register, Token::Newline })) //op register register
             {
@@ -103,7 +104,7 @@ Result<VmProgram, CompilerError> Compiler::Compile(const std::vector<TokenData>&
                 instruction.OpRegisterValue.Opcode = (u16)(cur.Type) + 1;
                 instruction.OpRegisterValue.RegA = GetRegisterIndex(reg);
                 instruction.OpRegisterValue.Value = 0; //Patched in compile step 2
-                variablePatches.push_back({ instructions.size(), var.String }); //Mark instruction for constant patching in step 2
+                variablePatches.push_back({ instructions.size(), var.String, true /*Constants only*/ }); //Mark instruction for constant patching in step 2
             }
             else
                 return Error(CompilerError{ CompilerErrorCode::InvalidSyntax, "Invalid syntax. Expects '" + to_string(cur.Type) + " register (register|value)'" });

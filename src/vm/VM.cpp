@@ -177,6 +177,12 @@ Result<void, VMError> VM::Execute(f32 deltaTime)
         Registers[regA] /= value;
         SetFlags(Registers[regA]);
         break;
+    case Opcode::Mod:
+        Registers[regA] %= Registers[regB];
+        break;
+    case Opcode::ModVal:
+        Registers[regA] %= value;
+        break;
     case Opcode::Cmp:
         SetFlags(Registers[regA] - Registers[regB]); //Update flags with difference
         break;

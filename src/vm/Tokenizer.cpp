@@ -46,6 +46,7 @@ const std::vector<TokenizerRule> Tokenizer::Rules =
     Match(Token::Or, "or"),
     Match(Token::Xor, "xor"),
     Match(Token::Neg, "neg"),
+    Match(Token::Mod, "mod"),
     Match(Token::Load, "load"),
     Match(Token::Store, "store"),
     Match(Token::Push, "push"),

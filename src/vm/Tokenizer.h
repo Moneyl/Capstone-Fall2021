@@ -50,6 +50,7 @@ enum class Token : u8
     Ipo = (u32)Opcode::Ipo,
     Opo = (u32)Opcode::Opo,
     Nop = (u32)Opcode::Nop,
+    Mod = (u32)Opcode::Mod,
     Config,
     Register,
     Var,

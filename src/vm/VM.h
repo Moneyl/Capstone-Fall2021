@@ -87,6 +87,8 @@ public:
         { Opcode::MulVal, 2 },
         { Opcode::Div,    2 },
         { Opcode::DivVal, 2 },
+        { Opcode::Mod,    10},
+        { Opcode::ModVal, 10},
         { Opcode::Cmp,    1 },
         { Opcode::CmpVal, 1 },
         { Opcode::Jmp,    1 },
