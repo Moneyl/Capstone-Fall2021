@@ -21,6 +21,7 @@ bool DisassemblerVisible = true;
 bool VmStateVisible = true;
 bool RobotListVisible = true;
 bool SettingsVisible = false;
+bool ArenaGuiVisible = true;
 
 Gui::Gui(Application* app) : _app(app)
 {
@@ -63,7 +64,9 @@ void Gui::Update(f32 deltaTime)
         DrawRobotList();
     if (SettingsVisible)
         DrawSettings();
-    if (ShowTournamentPopup)
+    if (ArenaGuiVisible)
+        DrawArenaGui();
+    if (TournamentCreatorVisible)
         DrawTournamentPopup();
 
     DrawTournamentStats();
@@ -114,6 +117,10 @@ void Gui::DrawMainMenuBar()
             {
 
             }
+            if (ImGui::MenuItem(ICON_FA_UNIVERSITY " Arena", "", &ArenaGuiVisible))
+            {
+
+            }
             ImGui::EndMenu();
         }
 
@@ -122,7 +129,7 @@ void Gui::DrawMainMenuBar()
             ImGui::MenuItem(ICON_FA_SYNC_ALT " Auto reload robots", "", &_app->Arena.RobotAutoReloadEnabled);
             ImGui::TooltipOnPrevious("Auto recompile robot programs when their source file is edited and saved. This also resets the VM (memory, registers, stack, variables, etc).");
 
-            ImGui::MenuItem(ICON_FA_NETWORK_WIRED " Start tournament", "F2", &ShowTournamentPopup);
+            ImGui::MenuItem(ICON_FA_SITEMAP " Start tournament", "F2", &TournamentCreatorVisible);
             ImGui::EndMenu();
         }
 
@@ -707,7 +714,7 @@ void Gui::DrawTournamentPopup()
             robotList.push_back(newBot);
         }
     }
-    if (ImGui::BeginPopupModal(popupTitle.c_str(), &ShowTournamentPopup))//, ImGuiWindowFlags_AlwaysAutoResize))
+    if (ImGui::BeginPopupModal(popupTitle.c_str(), &TournamentCreatorVisible))//, ImGuiWindowFlags_AlwaysAutoResize))
     {
         _app->Fonts.Large.Push();
         ImGui::Text(ICON_FA_COG " Settings");
@@ -768,7 +775,7 @@ void Gui::DrawTournamentPopup()
 
         if (ImGui::Button("Cancel"))
         {
-            ShowTournamentPopup = false;
+            TournamentCreatorVisible = false;
             ImGui::CloseCurrentPopup();
         }
         ImGui::SameLine();
@@ -785,7 +792,7 @@ void Gui::DrawTournamentPopup()
             _app->Arena.NumStages = numStages;
             _app->Arena.State = ArenaState::Tournament;
             _app->Arena.Stage = 0;
-            ShowTournamentPopup = false;
+            TournamentCreatorVisible = false;
             ImGui::CloseCurrentPopup();
         }
         ImGui::EndPopup();
@@ -871,6 +878,7 @@ void Gui::DrawTournamentStats()
             if (ImGui::Button("Continue tournament"))
             {
                 arena.State = ArenaState::Tournament;
+                arena.GameSpeed = 1.0f;
                 arena.Reset();
                 ImGui::CloseCurrentPopup();
             }
@@ -880,6 +888,7 @@ void Gui::DrawTournamentStats()
             if (ImGui::Button("Done"))
             {
                 arena.State = ArenaState::Normal;
+                arena.GameSpeed = 1.0f;
                 arena.Stage = 0;
                 ImGui::CloseCurrentPopup();
             }
@@ -888,4 +897,24 @@ void Gui::DrawTournamentStats()
 
         ImGui::EndPopup();
     }
+}
+
+void Gui::DrawArenaGui()
+{
+    if (!ImGui::Begin(ICON_FA_UNIVERSITY " Arena", &ArenaGuiVisible))
+    {
+        //Exit early if the window is closed
+        ImGui::End();
+        return;
+    }
+
+    _app->Fonts.Large.Push();
+    ImGui::Text("Arena");
+    _app->Fonts.Large.Pop();
+    ImGui::Separator();
+
+    ImGui::SliderFloat("Game speed", &_app->Arena.GameSpeed, 0.0f, Arena::MaxGameSpeed);
+    ImGui::TooltipOnPrevious("Game speed is multiplied by this. E.g. 2.0 would be two times quicker, 0.5 would be half as quick.");
+
+    ImGui::End();
 }

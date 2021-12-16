@@ -43,7 +43,7 @@ void Arena::Update(f32 deltaTime)
             if (RobotAutoReloadEnabled)
                 robot->TryReload(); //Recompile source file if it was edited
 
-            robot->Update(*this, deltaTime, CyclesPerSecond);
+            robot->Update(*this, deltaTime * GameSpeed, CyclesPerSecond);
 
             //Push out of bounds bot back into the arena
             u64 substepCount = 0;
@@ -159,9 +159,11 @@ void Arena::Reset(const std::vector<std::string>& botsToAdd)
     //Clear arena
     for (Robot* robot : Robots)
         delete robot;
+
     Robots.clear();
     Bullets.clear();
     Mines.clear();
+    GameSpeed = 1.0f;
 
     //Get list of bots to add to the arena
     std::vector<std::string> botsToAddFinal = {};

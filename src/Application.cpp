@@ -137,5 +137,13 @@ void Application::UpdateKeybinds()
     if (Input.KeyPressed(SDL_KeyCode::SDLK_F1))
         Arena.Reset();
     if (Input.KeyPressed(SDL_KeyCode::SDLK_F2))
-        Gui.ShowTournamentPopup = true;
+        Gui.TournamentCreatorVisible = !Gui.TournamentCreatorVisible;
+    if (Input.KeyPressed(SDL_KeyCode::SDLK_F3))
+    {
+        //Toggle high speed
+        if (Arena.GameSpeed <= 1.0f)
+            Arena.GameSpeed = Arena::MaxGameSpeed;
+        else
+            Arena.GameSpeed = 1.0f;
+    }
 }

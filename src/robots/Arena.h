@@ -64,6 +64,7 @@ public:
     Vec2<f32> Position = { 400.0f, 50.0f };
     Vec2<f32> Size = { 1000.0f, 1000.0f };
     u32 CyclesPerSecond = 50; //# of VM cycles to run each second
+    f32 GameSpeed = 1.0f; //deltaTime is multiplied by this. Increases both cycles/second and robot movement.
     bool RobotAutoReloadEnabled = true; //Auto recompile robot program when source file is edited
     std::vector<Robot*> Robots = {}; //Stored as pointers so VM port bindings can reference them and not risk invalidation if Robots resizes.
     std::vector<Bullet> Bullets = {};
@@ -76,6 +77,7 @@ public:
 
     //Maximum amount of collision substeps per robot per frame to use pushing a bot back into the arena
     const static inline u64 MaxRobotCollisionSubsteps = 10;
+    const static inline f32 MaxGameSpeed = 25.0f;
 
 private:
     //Robot list & rand() seed used last. Arena::Reset() uses these if not provided with a new list
