@@ -11,7 +11,6 @@
 #include "gui/Gui.h"
 #include "BuildConfig.h"
 #include "robots/Arena.h"
-#include <vector>
 
 //Root class of app. Owns data that is alive for the entire app runtime.
 class Application

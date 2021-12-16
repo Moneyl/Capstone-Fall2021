@@ -44,6 +44,7 @@ target_include_directories(CapstoneFall2021 SYSTEM PRIVATE
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/Dependencies/imgui/
     ${CMAKE_SOURCE_DIR}/Dependencies/SDL/include/
+    ${CMAKE_SOURCE_DIR}/Dependencies/SDL_mixer/include/
     ${CMAKE_SOURCE_DIR}/Dependencies/IconFontCppHeaders/
     ${CMAKE_SOURCE_DIR}/Dependencies/magic_enum/include/
     ${CMAKE_SOURCE_DIR}/Dependencies/nativefiledialog/src/
@@ -53,4 +54,5 @@ target_include_directories(CapstoneFall2021 SYSTEM PRIVATE
 
 # Set libraries to statically link
 target_link_libraries(CapstoneFall2021 PRIVATE SDL2-static)
+target_link_libraries(CapstoneFall2021 PRIVATE SDL2_mixer)
 target_link_libraries(CapstoneFall2021 PRIVATE pugixml-static)

@@ -1,0 +1,11 @@
+
+The following sounds came from the retro sfx sound pack sold on Humble Bundle:
+    Produced and designed by Andrea Baroni: 
+    Links:
+        https://andreabaroni.com/
+        https://cyberleafstudio.com
+    Sound file names:
+        Explosion0
+        Explosion1
+        Impact0
+        Turret0

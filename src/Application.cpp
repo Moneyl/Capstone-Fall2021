@@ -3,6 +3,7 @@
 #include "math/Util.h"
 #include "Config.h"
 #include "vm/VM.h"
+#include "utility/Sound.h"
 #include <iostream>
 
 bool Application::Run()
@@ -48,6 +49,8 @@ bool Application::Init()
         return false;
     }
     Renderer = { _window, _display, _rendererSDL, &Fonts };
+    if (!Sound::Init())
+        return false;
     Arena.Reset();
     Gui = { this };
 
@@ -96,6 +99,7 @@ bool Application::Shutdown()
 {
     //Cleanup resources
     Arena.Robots.clear();
+    Sound::Shutdown();
     Renderer.Cleanup();
     SDL_DestroyRenderer(_rendererSDL);
     SDL_DestroyWindow(_window);

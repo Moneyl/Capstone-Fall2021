@@ -2,6 +2,7 @@
 #include "render/Renderer.h"
 #include "math/Util.h"
 #include "utility/Algorithms.h"
+#include "utility/Sound.h"
 #include <algorithm>
 
 Arena::Arena()
@@ -68,6 +69,7 @@ void Arena::Update(f32 deltaTime)
         {
             //Hit robot. Damage it and delete the bullet
             (*anyHit)->Damage(bullet.Damage);
+            Sound::PlaySound("Impact0.wav");
             bullet.Alive = false;
         }
     }
@@ -86,6 +88,11 @@ void Arena::Update(f32 deltaTime)
             mine.Alive = false;
         }
     }
+
+    //Play sound effect for robots that died this frame
+    for (Robot* robot : Robots)
+        if (robot->Armor <= 0)
+            Sound::PlaySound("Explosion1.wav");
 
     //Erase dead objects
     EraseIf(Robots, [](const Robot* robot) { return robot->Armor <= 0; });
@@ -175,6 +182,7 @@ void Arena::DetonateMine(Mine& mine)
         }
     }
     
+    Sound::PlaySound("Explosion0.wav");
     mine.Alive = false;
 }
 

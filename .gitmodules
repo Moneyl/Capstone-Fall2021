@@ -16,3 +16,6 @@
 [submodule "dependencies/pugixml"]
 	path = dependencies/pugixml
 	url = https://github.com/zeux/pugixml.git
+[submodule "dependencies/SDL_mixer"]
+	path = dependencies/SDL_mixer
+	url = https://github.com/libsdl-org/SDL_mixer.git

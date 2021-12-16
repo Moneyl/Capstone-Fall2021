@@ -1,6 +1,7 @@
 #include "Robot.h"
 #include "math/Util.h"
 #include "render/Renderer.h"
+#include "utility/Sound.h"
 #include "Arena.h"
 
 Robot::Robot()
@@ -212,6 +213,7 @@ void Robot::OnPortWrite(Port port, VmValue value, f32 deltaTime)
 
             //Shoot the turret
             _arena->CreateBullet(Position, shootDirection, ID(), _turretDamage);
+            Sound::PlaySound("Turret0.wav");
             Heat += HeatPerTurretShot;
         }
         break;
