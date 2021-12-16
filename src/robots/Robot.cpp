@@ -616,7 +616,11 @@ void Robot::SetupShield(VmValue points)
 
 void Robot::Draw(Renderer* renderer)
 {
-    renderer->DrawTriangle(Position, Robot::ChassisSize, Angle, { 0, 127, 0, 255 }); //Chassis
+    //Chassis
+    f32 heatNormalized = Heat / Robot::CpuHaltHeat;
+    u8 heatColor = (u8)(heatNormalized * 255.0f); //For heat dependent chassis color
+    renderer->DrawTriangle(Position, Robot::ChassisSize, Angle, { heatColor, 255U - heatColor, 255U - heatColor, 255U });
+
     renderer->DrawLine(Position, Position + (TurretDirection() * Robot::TurretLength), ColorWhite); //Turret
     if (_sonarOn || _radarOn)
         renderer->DrawCircle(Position, RadarSonarRange, ColorWhite); //Sonar/radar arc
