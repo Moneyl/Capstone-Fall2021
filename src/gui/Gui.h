@@ -12,7 +12,7 @@ public:
     Gui(Application* app);
 
     void Update(f32 deltaTime);
-    bool ShowTournamentPopup = false;
+    bool ShowTournamentPopup = true;
 
 private:
     //Draw main menu bar at the top of the window
@@ -35,6 +35,8 @@ private:
     void DrawSettings();
     //Tournament tool. Pick settings and robots to fight in the tournament.
     void DrawTournamentPopup();
+    //Tournament stats. Shown when each stage is complete and when the tournament completes.
+    void DrawTournamentStats();
 
     Application* _app = nullptr;
     i32 _robotIndex = -1; //Robot selected from the robot list

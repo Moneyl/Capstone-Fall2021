@@ -48,7 +48,7 @@ namespace ImGui
 
     IMGUI_API void TextColored(const std::string& text, const ImVec4& color)
     {
-        ImGui::TextColored(text.c_str(), color);
+        ImGui::TextColored(color, text.c_str());
     }
 
     IMGUI_API void TextUnformatted(const std::string& text)

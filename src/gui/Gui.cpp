@@ -65,6 +65,8 @@ void Gui::Update(f32 deltaTime)
         DrawSettings();
     if (ShowTournamentPopup)
         DrawTournamentPopup();
+
+    DrawTournamentStats();
 }
 
 void Gui::DrawMainMenuBar()
@@ -684,6 +686,7 @@ void Gui::DrawTournamentPopup()
     const std::string popupTitle = "Start tournament";
     static std::vector<std::string> robotOptions = {}; //All robots in the folder at the time of opening the popup
     static std::vector<std::string> robotList = {}; //Robots chosen to be in the tournament
+    static u32 numStages = 3;
 
     //Open and draw popup
     if (!ImGui::IsPopupOpen(popupTitle.c_str()))
@@ -707,7 +710,14 @@ void Gui::DrawTournamentPopup()
     if (ImGui::BeginPopupModal(popupTitle.c_str(), &ShowTournamentPopup))//, ImGuiWindowFlags_AlwaysAutoResize))
     {
         _app->Fonts.Large.Push();
-        ImGui::Text("Robots");
+        ImGui::Text(ICON_FA_COG " Settings");
+        _app->Fonts.Large.Pop();
+        ImGui::Separator();
+
+        ImGui::InputScalar("# of stages", ImGuiDataType_U32, &numStages);
+
+        _app->Fonts.Large.Push();
+        ImGui::Text(ICON_FA_ROBOT " Robots");
         _app->Fonts.Large.Pop();
         ImGui::Separator();
 
@@ -764,10 +774,118 @@ void Gui::DrawTournamentPopup()
         ImGui::SameLine();
         if (ImGui::Button("Start"))
         {
+            //Todo: Replace with StartTournment function that handles resetting scores
+            _app->Arena.Scores.clear();
+            for (const std::string& name : robotList)
+            {
+                std::string path = BuildConfig::RobotFolderPath + name + ".sunyat";
+                _app->Arena.Scores[path] = 0;
+            }
             _app->Arena.Reset(robotList);
+            _app->Arena.NumStages = numStages;
+            _app->Arena.State = ArenaState::Tournament;
+            _app->Arena.Stage = 0;
             ShowTournamentPopup = false;
             ImGui::CloseCurrentPopup();
         }
+        ImGui::EndPopup();
+    }
+}
+
+void Gui::DrawTournamentStats()
+{
+    Arena& arena = _app->Arena;
+    bool visible = arena.State == ArenaState::TournamentStageDone || arena.State == ArenaState::TournamentComplete;
+    std::string title = "Tournament stats";
+
+    if (visible)
+        ImGui::OpenPopup(title.c_str());
+    if (ImGui::BeginPopupModal(title.c_str()))
+    {
+        _app->Fonts.Large.Push();
+        ImGui::Text(ICON_FA_CHART_LINE " Stats");
+        _app->Fonts.Large.Pop();
+        ImGui::Separator();
+
+        //Stats table
+        ImGuiTableFlags tableFlags = ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter |
+            ImGuiTableFlags_BordersV | ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable |
+            ImGuiTableFlags_Hideable;
+        if (ImGui::BeginTable("RegistersTable", 2, tableFlags, { 0.0f, 200.0f }))
+        {
+            //Setup columns
+            ImGui::TableSetupScrollFreeze(0, 1); //Make header row always visible when scrolling
+            ImGui::TableSetupColumn("Robot", ImGuiTableFlags_None);
+            ImGui::TableSetupColumn("Score", ImGuiTableFlags_None);
+            ImGui::TableHeadersRow();
+
+            //Fill table
+            for (const auto& kv : arena.Scores)
+            {
+                const std::string& path = kv.first;
+                const u32 score = kv.second;
+                ImGui::TableNextRow();
+
+                //Column 0
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text(std::filesystem::path(path).replace_extension("").filename().string().c_str());
+
+                //Column 1
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text(std::to_string(score).c_str());
+            }
+
+            ImGui::EndTable();
+        }
+
+        //Overall status
+        _app->Fonts.Medium.Push();
+        if (arena.State == ArenaState::TournamentStageDone)
+        {
+            ImGui::TextColored(arena.Winner + " is winning so far!", ImGui::SecondaryColor);
+            ImGui::TextColored("Stage complete!", ImGui::SecondaryColor);
+        }
+        if (arena.State == ArenaState::TournamentComplete)
+        {
+            //Find highest score
+            u32 max = 0;
+            std::string winnerName = "";
+            for(auto& kv : arena.Scores)
+                if (kv.second > max)
+                {
+                    max = kv.second;
+                    winnerName = std::filesystem::path(kv.first).replace_extension("").filename().string();
+                }
+
+            if (winnerName == "")
+                ImGui::TextColored("No winner. All scores the same.", ImGui::SecondaryColor);
+            else
+                ImGui::TextColored(winnerName + " is the winner!", ImGui::SecondaryColor);
+
+            ImGui::TextColored("Tournament complete!", ImGui::SecondaryColor);
+        }
+        _app->Fonts.Medium.Pop();
+
+        if (arena.State == ArenaState::TournamentStageDone)
+        {
+            if (ImGui::Button("Continue tournament"))
+            {
+                arena.State = ArenaState::Tournament;
+                arena.Reset();
+                ImGui::CloseCurrentPopup();
+            }
+        }
+        else if (arena.State == ArenaState::TournamentComplete)
+        {
+            if (ImGui::Button("Done"))
+            {
+                arena.State = ArenaState::Normal;
+                arena.Stage = 0;
+                ImGui::CloseCurrentPopup();
+            }
+        }
+
+
         ImGui::EndPopup();
     }
 }

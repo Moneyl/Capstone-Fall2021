@@ -32,6 +32,9 @@ Arena::Arena()
 
 void Arena::Update(f32 deltaTime)
 {
+    if (State == ArenaState::TournamentStageDone || State == ArenaState::TournamentComplete)
+        return; //Shouldn't update while in the stats/score screen
+
     //Update robots
     if (CyclesPerSecond != 0) //If CyclesPerSecond == 0, cyclesDelta == NaN. Breaks _cycleAccumulator and subsequent logic
     {
@@ -90,14 +93,51 @@ void Arena::Update(f32 deltaTime)
     }
 
     //Play sound effect for robots that died this frame
+    std::vector<std::string> diedThisFrame = {};
     for (Robot* robot : Robots)
         if (robot->Armor <= 0)
+        {
             Sound::PlaySound("Explosion1.wav");
+            diedThisFrame.push_back(robot->SourcePath());
+        }
 
     //Erase dead objects
     EraseIf(Robots, [](const Robot* robot) { return robot->Armor <= 0; });
     EraseIf(Bullets, [](const Bullet& bullet) { return !bullet.Alive; });
     EraseIf(Mines, [](const Mine& mine) { return !mine.Alive; });
+
+    //Update tournament logic
+    if (State == ArenaState::Tournament)
+    {
+        bool nextStage = false;
+        if (Robots.size() == 1)
+        {
+            //Increase score of last surviving bot
+            Winner = std::filesystem::path(Robots[0]->SourcePath()).filename().replace_extension("").string();
+            Scores[Robots[0]->SourcePath()] += 1;
+            nextStage = true;
+        }
+        else if (Robots.size() < 1)
+        {
+            //Tie. Scores unchanged.
+            nextStage = true;
+        }
+
+        //Proceed to next state
+        if (nextStage)
+        {
+            if (Stage >= NumStages - 1)
+            {
+                //Tournament complete
+                State = ArenaState::TournamentComplete;
+            }
+            else
+            {
+                State = ArenaState::TournamentStageDone;
+                Stage++;
+            }
+        }
+    }
 }
 
 void Arena::Draw(Renderer* renderer)
@@ -147,7 +187,8 @@ void Arena::Reset(const std::vector<std::string>& botsToAdd)
     {
         //Create bot
         Robot* robot = Robots.emplace_back(new Robot());
-        robot->LoadProgramFromSource(BuildConfig::RobotFolderPath + name + ".sunyat");
+        std::string path = BuildConfig::RobotFolderPath + name + ".sunyat";
+        robot->LoadProgramFromSource(path);
         
         //Random position
         robot->Position = Position;
@@ -207,4 +248,13 @@ Robot* Arena::GetClosestRobot(const Vec2<f32>& position, Robot* exclude, f32 ang
     }
 
     return out;
+}
+
+Robot* Arena::GetRobotById(u64 id)
+{
+    auto search = std::find_if(Robots.begin(), Robots.end(), [id](Robot* robot) { return robot->ID() == id; });
+    if (search == Robots.end())
+        return nullptr;
+    else
+        return *search;
 }
