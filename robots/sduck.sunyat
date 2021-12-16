@@ -1,0 +1,14 @@
+;
+; Sitting-Duck robot.  Use this one as a non-moving target.
+; (it just spins in place)
+;
+; Sample robot - by Ed T. Toton III 02/04/97
+
+const turn_rate 500
+
+!main
+    ipo r0 P_RANDOM          ; Get random number
+    and r0 360               ; Scale random number to [0, 360]
+    opo P_TURRET_ABS r0      ; Turn turret
+    opo P_STEERING turn_rate ; Spin around
+    jmp !main
