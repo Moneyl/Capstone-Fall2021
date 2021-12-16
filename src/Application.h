@@ -45,6 +45,7 @@ private:
 
     const u32 _targetFramerate = 60;
     const f32 targetDeltaTime = 1.0f / (f32)_targetFramerate;
+    const f32 targetDeltaTimeMs = targetDeltaTime * 1000.0f;
     f32 _deltaTime = 0.0f;
     Timer _frameTimer;
 };

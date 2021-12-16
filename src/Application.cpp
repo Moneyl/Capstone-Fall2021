@@ -85,8 +85,10 @@ bool Application::MainLoop()
         //Wait for target framerate
         while (_frameTimer.ElapsedSeconds() < targetDeltaTime)
         {
-            f32 timeToTargetFramerateMs = (targetDeltaTime - _frameTimer.ElapsedSeconds()) * 1000.0f;
-            ThreadSleep(timeToTargetFramerateMs, true);
+            f32 elapsed = _frameTimer.ElapsedSeconds();
+            f32 timeToTargetFramerateMs = (targetDeltaTime - elapsed) * 1000.0f;
+            if (timeToTargetFramerateMs < targetDeltaTimeMs)
+                ThreadSleep((u32)timeToTargetFramerateMs, true);
         }
         _deltaTime = _frameTimer.ElapsedSeconds();
         _frameTimer.Restart();

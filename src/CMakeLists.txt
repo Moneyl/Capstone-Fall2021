@@ -55,4 +55,4 @@ target_include_directories(CapstoneFall2021 SYSTEM PRIVATE
 # Set libraries to statically link
 target_link_libraries(CapstoneFall2021 PRIVATE SDL2-static)
 target_link_libraries(CapstoneFall2021 PRIVATE SDL2_mixer)
-target_link_libraries(CapstoneFall2021 PRIVATE pugixml-static)
+target_link_libraries(CapstoneFall2021 PRIVATE pugixml::pugixml)

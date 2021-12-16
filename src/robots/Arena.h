@@ -77,7 +77,7 @@ public:
 
     //Maximum amount of collision substeps per robot per frame to use pushing a bot back into the arena
     const static inline u64 MaxRobotCollisionSubsteps = 10;
-    const static inline f32 MaxGameSpeed = 25.0f;
+    const static inline f32 MaxGameSpeed = 100.0f;
 
 private:
     //Robot list & rand() seed used last. Arena::Reset() uses these if not provided with a new list

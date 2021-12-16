@@ -14,6 +14,12 @@
 //Todo: Add support for linux and mac os. One way this might be done is to define functions here, then have separate .cpp files with the implementations for each platform
 void ThreadSleep(u32 ms, bool setTimerPrecision = false)
 {
+    //Todo: Fix this
+    //Temporary fix to ms calculation error in the frame limiter
+    static u32 SleepMax = 20000;
+    if (ms >= SleepMax)
+        return;
+
     //On some windows systems timer precision needs to manually be set to 1ms to get accurate sleeps.
     if(setTimerPrecision)
         timeBeginPeriod(1);
